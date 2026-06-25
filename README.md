@@ -1,7 +1,12 @@
-# Tauri + React + Typescript
+# JM Boom
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+禁漫天堂跨平台客户端。
 
-## Recommended IDE Setup
+## NSFW 警告
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+本软件可能存在裸露、暴力、色情或冒犯等不适宜公众场合的内容，请勿在公共场合使用本软件，避免不必要的纷争。
+
+## 免责声明
+
+本项目仅供学习、研究和技术交流使用。项目作者与任何第三方服务、原始应用或内容提供方无关。
+使用者应自行遵守当地法律法规以及相关服务条款。因使用本项目产生的任何法律、版权、账号、数据或财务风险均由使用者自行承担。
