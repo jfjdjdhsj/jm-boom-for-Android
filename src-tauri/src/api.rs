@@ -9,7 +9,7 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 type Aes256EcbDec = ecb::Decryptor<Aes256>;
-type ApiResult<T> = Result<T, ApiError>;
+pub(crate) type ApiResult<T> = Result<T, ApiError>;
 
 const API_VERSION: &str = "1.8.2";
 const API_SECRET: &str = "185Hcomic3PAPP7R";
@@ -26,6 +26,7 @@ static IMG_HOST_CACHE: OnceLock<Mutex<HashMap<&'static str, String>>> = OnceLock
 #[derive(Debug)]
 pub enum ApiErrorKind {
     Api,
+    Cache,
     Client,
     Decode,
     Decrypt,
@@ -44,7 +45,7 @@ pub struct ApiError {
 }
 
 impl ApiError {
-    fn new(kind: ApiErrorKind, message: impl Into<String>) -> Self {
+    pub(crate) fn new(kind: ApiErrorKind, message: impl Into<String>) -> Self {
         Self {
             kind,
             message: message.into(),
@@ -445,14 +446,14 @@ pub struct FeedComic {
     pub updated_at: Option<i64>,
 }
 
-struct ApiAuth {
-    ts: u64,
-    token: String,
-    tokenparam: String,
+pub(crate) struct ApiAuth {
+    pub(crate) ts: u64,
+    pub(crate) token: String,
+    pub(crate) tokenparam: String,
 }
 
 impl ApiAuth {
-    fn current() -> Self {
+    pub(crate) fn current() -> Self {
         let ts = current_timestamp();
 
         Self {
@@ -663,7 +664,7 @@ pub async fn get_comic_comments(
     })
 }
 
-fn build_http_client() -> ApiResult<reqwest::Client> {
+pub(crate) fn build_http_client() -> ApiResult<reqwest::Client> {
     reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(5))
         .timeout(std::time::Duration::from_secs(8))
@@ -1131,7 +1132,7 @@ fn decrypt_data(data: &str, ts: u64) -> Result<String, String> {
     String::from_utf8(decrypted).map_err(|error| format!("Invalid decrypted text: {error}"))
 }
 
-fn current_timestamp() -> u64 {
+pub(crate) fn current_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs())
@@ -1321,7 +1322,7 @@ where
     }
 }
 
-fn resolve_api_endpoint(endpoint: Option<String>) -> ApiResult<&'static str> {
+pub(crate) fn resolve_api_endpoint(endpoint: Option<String>) -> ApiResult<&'static str> {
     let Some(endpoint) = endpoint else {
         return Ok(DEFAULT_API_ENDPOINT);
     };

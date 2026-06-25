@@ -1,9 +1,11 @@
 mod api;
+mod reader;
 
 use api::{
     ComicCommentsResult, ComicDetailResult, HomeFeedResult, RemoteSettingResult,
     SearchAlbumsResult, WeekFiltersResult, WeekItemsResult,
 };
+use reader::{ComicReadManifestResult, ComicReadPageResult, ComicReadPrefetchResult};
 
 #[tauri::command]
 async fn get_remote_setting(endpoint: Option<String>) -> Result<RemoteSettingResult, String> {
@@ -70,6 +72,44 @@ async fn get_comic_comments(
         .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+async fn get_comic_read_manifest(
+    read_id: String,
+    shunt: Option<String>,
+    endpoint: Option<String>,
+) -> Result<ComicReadManifestResult, String> {
+    reader::get_comic_read_manifest(read_id, shunt, endpoint)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn get_comic_read_page(
+    app: tauri::AppHandle,
+    read_id: String,
+    index: u32,
+    shunt: Option<String>,
+    endpoint: Option<String>,
+) -> Result<ComicReadPageResult, String> {
+    reader::get_comic_read_page(&app, read_id, index, shunt, endpoint)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn prefetch_comic_read_pages(
+    app: tauri::AppHandle,
+    read_id: String,
+    center_index: u32,
+    radius: Option<u32>,
+    shunt: Option<String>,
+    endpoint: Option<String>,
+) -> Result<ComicReadPrefetchResult, String> {
+    reader::prefetch_comic_read_pages(&app, read_id, center_index, radius, shunt, endpoint)
+        .await
+        .map_err(|error| error.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -81,7 +121,10 @@ pub fn run() {
             get_week_filters,
             get_week_items,
             get_comic_detail,
-            get_comic_comments
+            get_comic_comments,
+            get_comic_read_manifest,
+            get_comic_read_page,
+            prefetch_comic_read_pages
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

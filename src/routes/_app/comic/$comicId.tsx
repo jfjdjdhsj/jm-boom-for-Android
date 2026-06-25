@@ -110,6 +110,7 @@ function ComicDetailPage() {
 
 function ComicDetailView({ comic }: { comic: ComicDetail }) {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false)
+  const albumId = comic.seriesId || comic.id
 
   const commentsQuery = useInfiniteQuery({
     queryKey: ['jm-comic-comments', comic.id],
@@ -143,7 +144,7 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
 
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-8">
         <div className="min-w-0">
-          <ChaptersSection chapters={comic.series} />
+          <ChaptersSection albumId={albumId} comicTitle={comic.title} chapters={comic.series} />
         </div>
 
         <aside className="sticky top-8 h-fit">
@@ -178,6 +179,8 @@ function ComicHero({
   onCommentsClick: () => void
 }) {
   const authors = comic.author.length > 0 ? comic.author.join(' / ') : 'N/A'
+  const albumId = comic.seriesId || comic.id
+  const nextChapter = getNextChapter(comic.id, comic.series)
   const statusBadges = [
     comic.price > 0 ? `${comic.price} 积分` : '免费',
     comic.purchased ? '已购买' : '',
@@ -218,9 +221,21 @@ function ComicHero({
         </p>
 
         <div className="flex flex-wrap gap-2">
-          <Button disabled>
-            <BookOpenIcon className="size-4" />
-            开始阅读
+          <Button asChild>
+            <Link
+              to="/reader/$comicId"
+              params={{ comicId: comic.id }}
+              search={{
+                title: comic.title,
+                chapter: '',
+                albumId,
+                nextId: nextChapter?.id ?? '',
+                nextChapter: nextChapter?.title ?? ''
+              }}
+            >
+              <BookOpenIcon className="size-4" />
+              开始阅读
+            </Link>
           </Button>
           <Button variant="outline" disabled>
             <BookmarkIcon className="size-4" />
@@ -323,7 +338,15 @@ function PillGroup({
   )
 }
 
-function ChaptersSection({ chapters }: { chapters: ComicChapter[] }) {
+function ChaptersSection({
+  albumId,
+  comicTitle,
+  chapters
+}: {
+  albumId: string
+  comicTitle: string
+  chapters: ComicChapter[]
+}) {
   const sortedChapters = useMemo(() => sortChapters(chapters), [chapters])
   const [page, setPage] = useState(1)
   const pageCount = Math.max(1, Math.ceil(sortedChapters.length / CHAPTER_PAGE_SIZE))
@@ -357,21 +380,44 @@ function ChaptersSection({ chapters }: { chapters: ComicChapter[] }) {
       ) : (
         <>
           <div className="space-y-2">
-            {visibleChapters.map((chapter, index) => (
-              <Card key={chapter.id} size="sm" className="py-0 transition-colors hover:bg-muted/40">
-                <CardContent className="flex items-center justify-between gap-4 p-4">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{chapter.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {chapter.sort
-                        ? `第 ${chapter.sort} 章`
-                        : `章节 ${(safePage - 1) * CHAPTER_PAGE_SIZE + index + 1}`}
-                    </div>
-                  </div>
-                  <Badge variant="outline">JM {chapter.id}</Badge>
-                </CardContent>
-              </Card>
-            ))}
+            {visibleChapters.map((chapter, index) => {
+              const chapterIndex = (safePage - 1) * CHAPTER_PAGE_SIZE + index
+              const nextChapter = sortedChapters[chapterIndex + 1] ?? null
+              const chapterTitle = formatChapterTitle(chapter, chapterIndex)
+              const nextChapterTitle = nextChapter
+                ? formatChapterTitle(nextChapter, chapterIndex + 1)
+                : ''
+
+              return (
+                <Link
+                  key={chapter.id}
+                  to="/reader/$comicId"
+                  params={{ comicId: chapter.id }}
+                  search={{
+                    title: comicTitle,
+                    chapter: chapterTitle,
+                    albumId,
+                    nextId: nextChapter?.id ?? '',
+                    nextChapter: nextChapterTitle
+                  }}
+                  className="block"
+                >
+                  <Card size="sm" className="py-0 transition-colors hover:bg-muted/40">
+                    <CardContent className="flex items-center justify-between gap-4 p-4">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{chapterTitle}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {chapter.sort
+                            ? `第 ${chapter.sort} 章`
+                            : `章节 ${(safePage - 1) * CHAPTER_PAGE_SIZE + index + 1}`}
+                        </div>
+                      </div>
+                      <Badge variant="outline">JM {chapter.id}</Badge>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )
+            })}
           </div>
 
           {pageCount > 1 ? (
@@ -778,6 +824,27 @@ function sortChapters(chapters: ComicChapter[]) {
 
     return rightSort - leftSort
   })
+}
+
+function formatChapterTitle(chapter: ComicChapter, index: number) {
+  const title = chapter.title.trim()
+
+  if (title.length > 0) {
+    return title
+  }
+
+  return chapter.sort ? `第 ${chapter.sort} 章` : `章节 ${index + 1}`
+}
+
+function getNextChapter(currentId: string, chapters: ComicChapter[]) {
+  const sortedChapters = sortChapters(chapters)
+  const currentIndex = sortedChapters.findIndex(chapter => chapter.id === currentId)
+
+  if (currentIndex < 0) {
+    return null
+  }
+
+  return sortedChapters[currentIndex + 1] ?? null
 }
 
 function getVisiblePages(currentPage: number, pageCount: number) {
