@@ -86,7 +86,7 @@ export function ReaderBottomBar({
     <>
       <footer
         className={cn(
-          'absolute bottom-20 left-1/2 z-30 flex w-80 -translate-x-1/2 flex-col items-center gap-2 rounded-xl border border-border/70 bg-background/85 p-3 text-center text-foreground shadow-lg backdrop-blur transition-all duration-200',
+          'absolute bottom-10 left-1/2 z-30 flex w-80 -translate-x-1/2 flex-col items-center gap-2 rounded-xl border border-border/70 bg-background/85 p-3 text-center text-foreground shadow-lg backdrop-blur transition-all duration-200',
           visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
         )}
       >

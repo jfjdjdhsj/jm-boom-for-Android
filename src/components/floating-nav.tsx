@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
+import type { MouseEvent } from 'react'
 
 import { ThemeToggle } from '@/components/theme-toggle'
 import { buttonVariants } from '@/components/ui/button'
@@ -16,9 +17,10 @@ type FloatingNavProps = {
   items: FloatingNavItem[]
   activeId?: string
   className?: string
+  onItemClick?: (item: FloatingNavItem, event: MouseEvent<HTMLAnchorElement>) => void
 }
 
-export function FloatingNav({ items, activeId, className }: FloatingNavProps) {
+export function FloatingNav({ items, activeId, className, onItemClick }: FloatingNavProps) {
   const currentId = activeId ?? items[0]?.id
 
   if (items.length === 0) {
@@ -40,6 +42,7 @@ export function FloatingNav({ items, activeId, className }: FloatingNavProps) {
             <Link
               key={item.id}
               to={item.to}
+              onClick={event => onItemClick?.(item, event)}
               className={cn(
                 buttonVariants({
                   variant: isActive ? 'default' : 'ghost',

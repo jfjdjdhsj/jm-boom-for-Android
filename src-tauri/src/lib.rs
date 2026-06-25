@@ -2,8 +2,8 @@ mod api;
 mod reader;
 
 use api::{
-    ComicCommentsResult, ComicDetailResult, HomeFeedResult, RemoteSettingResult,
-    SearchAlbumsResult, WeekFiltersResult, WeekItemsResult,
+    ComicCommentsResult, ComicDetailResult, HomeFeedResult, LoginResult, RemoteSettingResult,
+    SearchAlbumsResult, SignInDataResult, SignInResult, WeekFiltersResult, WeekItemsResult,
 };
 use reader::{ComicReadManifestResult, ComicReadPageResult, ComicReadPrefetchResult};
 
@@ -73,6 +73,43 @@ async fn get_comic_comments(
 }
 
 #[tauri::command]
+async fn login(
+    username: String,
+    password: String,
+    endpoint: Option<String>,
+) -> Result<LoginResult, String> {
+    api::login(username, password, endpoint)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn get_sign_in_data(
+    user_id: u32,
+    endpoint: Option<String>,
+) -> Result<SignInDataResult, String> {
+    api::get_sign_in_data(user_id, endpoint)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn sign_in(
+    user_id: u32,
+    daily_id: u32,
+    endpoint: Option<String>,
+) -> Result<SignInResult, String> {
+    api::sign_in(user_id, daily_id, endpoint)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn clear_session() {
+    api::clear_session();
+}
+
+#[tauri::command]
 async fn get_comic_read_manifest(
     read_id: String,
     shunt: Option<String>,
@@ -122,6 +159,10 @@ pub fn run() {
             get_week_items,
             get_comic_detail,
             get_comic_comments,
+            login,
+            get_sign_in_data,
+            sign_in,
+            clear_session,
             get_comic_read_manifest,
             get_comic_read_page,
             prefetch_comic_read_pages

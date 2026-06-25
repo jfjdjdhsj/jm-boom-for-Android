@@ -5,6 +5,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
+use std::sync::Arc;
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -22,6 +23,7 @@ const API_ENDPOINTS: [&str; 5] = [
     "https://www.jmeadpoolcdn.life",
 ];
 static IMG_HOST_CACHE: OnceLock<Mutex<HashMap<&'static str, String>>> = OnceLock::new();
+static SHARED_HTTP_CLIENT: OnceLock<Mutex<Option<reqwest::Client>>> = OnceLock::new();
 
 #[derive(Debug)]
 pub enum ApiErrorKind {
@@ -273,11 +275,153 @@ struct RemoteSettingPayload {
     img_host: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct LoginPayload {
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    uid: u32,
+    username: String,
+    #[serde(default)]
+    email: String,
+    #[serde(default)]
+    photo: String,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    coin: u32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    album_favorites: u32,
+    #[serde(default)]
+    level_name: String,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    level: u32,
+    #[serde(
+        default,
+        rename = "nextLevelExp",
+        deserialize_with = "deserialize_u32_from_any"
+    )]
+    next_level_exp: u32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    exp: u32,
+    #[serde(
+        default,
+        rename = "expPercent",
+        deserialize_with = "deserialize_f32_from_any"
+    )]
+    exp_percent: f32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    album_favorites_max: u32,
+}
+
+#[derive(Debug, Deserialize)]
+struct SignInDataPayload {
+    daily_id: u32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    three_days_coin: u32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    three_days_exp: u32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    seven_days_coin: u32,
+    #[serde(default, deserialize_with = "deserialize_u32_from_any")]
+    seven_days_exp: u32,
+    #[serde(default)]
+    event_name: String,
+    #[serde(default)]
+    background_pc: String,
+    #[serde(default)]
+    background_phone: String,
+    #[serde(default, rename = "currentProgress")]
+    current_progress: String,
+    #[serde(default)]
+    record: Vec<Vec<SignInRecordPayload>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SignInRecordPayload {
+    #[serde(default)]
+    date: String,
+    #[serde(default, deserialize_with = "deserialize_bool_from_any")]
+    signed: bool,
+    #[serde(default, deserialize_with = "deserialize_bool_from_any")]
+    bonus: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct SignInPayload {
+    msg: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct RemoteSettingResult {
     pub endpoint: String,
     #[serde(rename = "imgHost")]
     pub img_host: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LoginResult {
+    pub endpoint: String,
+    pub user: UserProfile,
+}
+
+#[derive(Debug, Serialize)]
+pub struct UserProfile {
+    pub id: u32,
+    pub username: String,
+    pub email: String,
+    pub avatar: String,
+    #[serde(rename = "avatarUrl")]
+    pub avatar_url: String,
+    pub level: u32,
+    #[serde(rename = "levelName")]
+    pub level_name: String,
+    #[serde(rename = "currentLevelExp")]
+    pub current_level_exp: u32,
+    #[serde(rename = "nextLevelExp")]
+    pub next_level_exp: u32,
+    #[serde(rename = "expPercent")]
+    pub exp_percent: f32,
+    #[serde(rename = "currentCollectCount")]
+    pub current_collect_count: u32,
+    #[serde(rename = "maxCollectCount")]
+    pub max_collect_count: u32,
+    #[serde(rename = "jCoin")]
+    pub j_coin: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SignInDataResult {
+    pub endpoint: String,
+    #[serde(rename = "dailyId")]
+    pub daily_id: u32,
+    #[serde(rename = "threeDaysCoin")]
+    pub three_days_coin: u32,
+    #[serde(rename = "threeDaysExp")]
+    pub three_days_exp: u32,
+    #[serde(rename = "sevenDaysCoin")]
+    pub seven_days_coin: u32,
+    #[serde(rename = "sevenDaysExp")]
+    pub seven_days_exp: u32,
+    #[serde(rename = "eventName")]
+    pub event_name: String,
+    #[serde(rename = "currentProgress")]
+    pub current_progress: String,
+    #[serde(rename = "backgroundPc")]
+    pub background_pc: String,
+    #[serde(rename = "backgroundPhone")]
+    pub background_phone: String,
+    pub records: Vec<SignInRecord>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SignInRecord {
+    pub day: u32,
+    pub date: String,
+    pub signed: bool,
+    pub bonus: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SignInResult {
+    pub endpoint: String,
+    pub message: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -664,10 +808,127 @@ pub async fn get_comic_comments(
     })
 }
 
+pub async fn login(
+    username: String,
+    password: String,
+    endpoint: Option<String>,
+) -> ApiResult<LoginResult> {
+    let username = username.trim().to_string();
+    let password = password.trim().to_string();
+
+    if username.is_empty() || password.is_empty() {
+        return Err(ApiError::new(
+            ApiErrorKind::MissingData,
+            "Login needs both username and password",
+        ));
+    }
+
+    let endpoint = resolve_api_endpoint(endpoint)?;
+    clear_session();
+    let client = build_http_client()?;
+    let auth = ApiAuth::current();
+    let img_host_future = request_remote_img_host(&client, endpoint, &auth);
+    let payload_future = request_login(&client, endpoint, &username, &password, &auth);
+    let (img_host_result, payload_result) = tokio::join!(img_host_future, payload_future);
+    let img_host = match img_host_result {
+        Ok(img_host) => Some(img_host),
+        Err(error) => {
+            eprintln!("Failed to load remote setting for user avatar: {error}");
+            None
+        }
+    };
+
+    Ok(LoginResult {
+        endpoint: endpoint.to_string(),
+        user: map_login_user(payload_result?, img_host.as_deref()),
+    })
+}
+
+pub async fn get_sign_in_data(
+    user_id: u32,
+    endpoint: Option<String>,
+) -> ApiResult<SignInDataResult> {
+    if user_id == 0 {
+        return Err(ApiError::new(
+            ApiErrorKind::MissingData,
+            "Sign-in data needs a user_id",
+        ));
+    }
+
+    let endpoint = resolve_api_endpoint(endpoint)?;
+    let client = build_http_client()?;
+    let auth = ApiAuth::current();
+    let payload = request_sign_in_data(&client, endpoint, user_id, &auth).await?;
+
+    Ok(SignInDataResult {
+        endpoint: endpoint.to_string(),
+        daily_id: payload.daily_id,
+        three_days_coin: payload.three_days_coin,
+        three_days_exp: payload.three_days_exp,
+        seven_days_coin: payload.seven_days_coin,
+        seven_days_exp: payload.seven_days_exp,
+        event_name: payload.event_name,
+        current_progress: payload.current_progress,
+        background_pc: payload.background_pc,
+        background_phone: payload.background_phone,
+        records: map_sign_in_records(payload.record),
+    })
+}
+
+pub async fn sign_in(
+    user_id: u32,
+    daily_id: u32,
+    endpoint: Option<String>,
+) -> ApiResult<SignInResult> {
+    if user_id == 0 || daily_id == 0 {
+        return Err(ApiError::new(
+            ApiErrorKind::MissingData,
+            "Sign-in needs both user_id and daily_id",
+        ));
+    }
+
+    let endpoint = resolve_api_endpoint(endpoint)?;
+    let client = build_http_client()?;
+    let auth = ApiAuth::current();
+    let payload = request_sign_in(&client, endpoint, user_id, daily_id, &auth).await?;
+
+    Ok(SignInResult {
+        endpoint: endpoint.to_string(),
+        message: payload.msg,
+    })
+}
+
+pub fn clear_session() {
+    if let Some(client) = SHARED_HTTP_CLIENT.get() {
+        if let Ok(mut client) = client.lock() {
+            *client = None;
+        }
+    }
+}
+
 pub(crate) fn build_http_client() -> ApiResult<reqwest::Client> {
+    let client = SHARED_HTTP_CLIENT.get_or_init(|| Mutex::new(None));
+    let mut client = client
+        .lock()
+        .map_err(|error| ApiError::new(ApiErrorKind::Client, error.to_string()))?;
+
+    if let Some(client) = client.as_ref() {
+        return Ok(client.clone());
+    }
+
+    let next_client = create_http_client()?;
+    *client = Some(next_client.clone());
+
+    Ok(next_client)
+}
+
+fn create_http_client() -> ApiResult<reqwest::Client> {
+    let cookie_store = Arc::new(reqwest::cookie::Jar::default());
+
     reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(5))
         .timeout(std::time::Duration::from_secs(8))
+        .cookie_provider(cookie_store)
         .build()
         .map_err(|error| ApiError::new(ApiErrorKind::Client, error.to_string()))
 }
@@ -891,6 +1152,62 @@ async fn request_comic_comments(
     .await
 }
 
+async fn request_login(
+    client: &reqwest::Client,
+    endpoint: &str,
+    username: &str,
+    password: &str,
+    auth: &ApiAuth,
+) -> ApiResult<LoginPayload> {
+    request_api_multipart_data(
+        client,
+        endpoint,
+        "login",
+        vec![
+            ("username".to_string(), username.to_string()),
+            ("password".to_string(), password.to_string()),
+        ],
+        auth,
+    )
+    .await
+}
+
+async fn request_sign_in_data(
+    client: &reqwest::Client,
+    endpoint: &str,
+    user_id: u32,
+    auth: &ApiAuth,
+) -> ApiResult<SignInDataPayload> {
+    request_api_data(
+        client,
+        endpoint,
+        "daily",
+        &[("user_id", user_id.to_string())],
+        auth,
+    )
+    .await
+}
+
+async fn request_sign_in(
+    client: &reqwest::Client,
+    endpoint: &str,
+    user_id: u32,
+    daily_id: u32,
+    auth: &ApiAuth,
+) -> ApiResult<SignInPayload> {
+    request_api_multipart_data(
+        client,
+        endpoint,
+        "daily_chk",
+        vec![
+            ("user_id".to_string(), user_id.to_string()),
+            ("daily_id".to_string(), daily_id.to_string()),
+        ],
+        auth,
+    )
+    .await
+}
+
 async fn request_api_data<T>(
     client: &reqwest::Client,
     endpoint: &str,
@@ -920,6 +1237,123 @@ where
             ApiError::new(ApiErrorKind::Network, format!("{request_name}: {error}"))
         })?;
 
+    if !response.status().is_success() {
+        return Err(ApiError::new(
+            ApiErrorKind::Http,
+            format!("{request_name}: API returned HTTP {}", response.status()),
+        ));
+    }
+
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+    let body = response.text().await.map_err(|error| {
+        ApiError::new(ApiErrorKind::Network, format!("{request_name}: {error}"))
+    })?;
+    let body = body.trim();
+
+    if body.is_empty() {
+        return Err(ApiError::new(
+            ApiErrorKind::Empty,
+            format!("{request_name}: API returned an empty response"),
+        ));
+    }
+
+    let envelope: ApiResponse<serde_json::Value> = serde_json::from_str(body).map_err(|error| {
+        ApiError::new(
+            ApiErrorKind::Decode,
+            format!(
+                "{request_name}: Invalid API response ({content_type}): {error}. Body starts with: {}",
+                response_preview(body)
+            ),
+        )
+    })?;
+
+    if envelope.code != 200 {
+        return Err(ApiError::new(
+            ApiErrorKind::Api,
+            envelope
+                .error_msg
+                .map(|message| format!("{request_name}: {message}"))
+                .unwrap_or_else(|| format!("{request_name}: API returned code {}", envelope.code)),
+        ));
+    }
+
+    let data = envelope.data.ok_or_else(|| {
+        ApiError::new(
+            ApiErrorKind::MissingData,
+            format!("{request_name}: API response did not include data"),
+        )
+    })?;
+
+    match data {
+        serde_json::Value::String(encrypted) => {
+            let decrypted = decrypt_data(&encrypted, auth.ts).map_err(|error| {
+                ApiError::new(ApiErrorKind::Decrypt, format!("{request_name}: {error}"))
+            })?;
+            serde_json::from_str(&decrypted).map_err(|error| {
+                ApiError::new(
+                    ApiErrorKind::Payload,
+                    format!(
+                        "{request_name}: Invalid payload: {error}. Payload starts with: {}",
+                        response_preview(&decrypted)
+                    ),
+                )
+            })
+        }
+        value => serde_json::from_value(value).map_err(|error| {
+            ApiError::new(
+                ApiErrorKind::Payload,
+                format!("{request_name}: Invalid payload: {error}"),
+            )
+        }),
+    }
+}
+
+async fn request_api_multipart_data<T>(
+    client: &reqwest::Client,
+    endpoint: &str,
+    path: &str,
+    fields: Vec<(String, String)>,
+    auth: &ApiAuth,
+) -> ApiResult<T>
+where
+    T: DeserializeOwned,
+{
+    let request_name = format!("{endpoint}/{path}");
+    let url = format!("{endpoint}/{path}");
+    let form = fields
+        .into_iter()
+        .fold(reqwest::multipart::Form::new(), |form, (key, value)| {
+            form.text(key, value)
+        });
+
+    let response = client
+        .post(url)
+        .header("accept", "application/json")
+        .header("token", &auth.token)
+        .header("tokenparam", &auth.tokenparam)
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|error| {
+            ApiError::new(ApiErrorKind::Network, format!("{request_name}: {error}"))
+        })?;
+
+    decode_api_response(response, &request_name, auth).await
+}
+
+async fn decode_api_response<T>(
+    response: reqwest::Response,
+    request_name: &str,
+    auth: &ApiAuth,
+) -> ApiResult<T>
+where
+    T: DeserializeOwned,
+{
     if !response.status().is_success() {
         return Err(ApiError::new(
             ApiErrorKind::Http,
@@ -1093,6 +1527,40 @@ fn map_comment(payload: CommentPayload, img_host: Option<&str>) -> ComicComment 
     }
 }
 
+fn map_login_user(payload: LoginPayload, img_host: Option<&str>) -> UserProfile {
+    let avatar_url = user_avatar_url(img_host, &payload.photo).unwrap_or_default();
+
+    UserProfile {
+        id: payload.uid,
+        username: payload.username,
+        email: payload.email,
+        avatar: payload.photo,
+        avatar_url,
+        level: payload.level,
+        level_name: payload.level_name,
+        current_level_exp: payload.exp,
+        next_level_exp: payload.next_level_exp,
+        exp_percent: payload.exp_percent,
+        current_collect_count: payload.album_favorites,
+        max_collect_count: payload.album_favorites_max,
+        j_coin: payload.coin,
+    }
+}
+
+fn map_sign_in_records(records: Vec<Vec<SignInRecordPayload>>) -> Vec<SignInRecord> {
+    records
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .map(|(index, record)| SignInRecord {
+            day: index as u32 + 1,
+            date: record.date,
+            signed: record.signed,
+            bonus: record.bonus,
+        })
+        .collect()
+}
+
 fn map_week_categories(categories: Vec<WeekCategoryPayload>) -> Vec<WeekCategory> {
     categories
         .into_iter()
@@ -1179,10 +1647,39 @@ where
                 return Ok(0);
             }
 
-            Ok(value.parse::<u32>().unwrap_or_default())
+            value
+                .parse::<u32>()
+                .map_err(|error| serde::de::Error::custom(format!("expected a u32 string: {error}")))
         }
         serde_json::Value::Null => Ok(0),
         _ => Err(serde::de::Error::custom("expected a u32-compatible value")),
+    }
+}
+
+fn deserialize_f32_from_any<'de, D>(deserializer: D) -> Result<f32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = serde_json::Value::deserialize(deserializer)?;
+
+    match value {
+        serde_json::Value::Number(number) => number
+            .as_f64()
+            .map(|value| value as f32)
+            .ok_or_else(|| serde::de::Error::custom("expected a valid f32 number")),
+        serde_json::Value::String(value) => {
+            let value = value.trim().trim_end_matches('%');
+
+            if value.is_empty() {
+                return Ok(0.0);
+            }
+
+            value
+                .parse::<f32>()
+                .map_err(|error| serde::de::Error::custom(format!("expected an f32 string: {error}")))
+        }
+        serde_json::Value::Null => Ok(0.0),
+        _ => Err(serde::de::Error::custom("expected a f32-compatible value")),
     }
 }
 
