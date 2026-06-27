@@ -56,7 +56,7 @@ export function ChaptersSection({
         description={`${chapters.length} 个章节${pageCount > 1 ? `，第 ${safePage}/${pageCount} 页` : ''}`}
       />
       {sortedChapters.length === 0 ? (
-        <StatePanel title="暂无章节" description="当前作品没有返回章节列表。" />
+        <StatePanel title="暂无章节" description="当前作品可能是单行本。" />
       ) : (
         <>
           <div className="space-y-2">

@@ -77,7 +77,7 @@ export function ComicHero({
               params={{ comicId: comic.id }}
               search={{
                 title: comic.title,
-                chapter: '',
+                chapter: '正文',
                 albumId,
                 fromDetail: '1',
                 pageIndex: '0',

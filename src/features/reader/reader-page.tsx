@@ -12,6 +12,8 @@ import { useReaderPages } from './use-reader-pages'
 import { useReaderToolbarVisibility } from './use-reader-toolbar-visibility'
 import { useReadingHistoryStore } from '@/stores/reading-history-store'
 
+const DEFAULT_CHAPTER_TITLE = '正文'
+
 export function ReaderPage({ comicId, search }: { comicId: string; search: ReaderSearch }) {
   const navigate = useNavigate()
   const router = useRouter()
@@ -42,20 +44,22 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
   } = useReaderPages(comicId, Number.isNaN(initialPageIndex) ? 0 : initialPageIndex)
 
   useEffect(() => {
-    if (!comicId || !chapter.trim() || pageCount <= 0) {
+    if (!comicId || pageCount <= 0) {
       return
     }
 
     const historyComicId = albumId || comicId
+    const historyTitle = title || `JM ${historyComicId}`
+    const historyChapter = chapter || DEFAULT_CHAPTER_TITLE
 
     upsertReadingHistory({
       comicId: historyComicId,
       albumId,
-      title,
+      title: historyTitle,
       author,
       coverUrl,
       chapterId: comicId,
-      chapterTitle: chapter,
+      chapterTitle: historyChapter,
       pageIndex: currentIndex,
       pageCount
     })
@@ -71,13 +75,13 @@ export function ReaderPage({ comicId, search }: { comicId: string; search: Reade
     upsertReadingHistory
   ])
   const goBack = useCallback(() => {
-    if (search.fromDetail === '1' && albumId.length > 0) {
-      void navigate({ to: '/comic/$comicId', params: { comicId: albumId }, replace: true })
+    if (window.history.length > 1) {
+      router.history.back()
       return
     }
 
-    if (window.history.length > 1) {
-      router.history.back()
+    if (search.fromDetail === '1' && albumId.length > 0) {
+      void navigate({ to: '/comic/$comicId', params: { comicId: albumId }, replace: true })
       return
     }
 

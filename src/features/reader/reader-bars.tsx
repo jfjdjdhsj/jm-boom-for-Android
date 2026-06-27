@@ -114,6 +114,7 @@ export function ReaderBottomBar({
           <Link
             to="/reader/$comicId"
             params={{ comicId: nextChapter.id }}
+            replace
             search={{
               title,
               chapter: nextChapter.title,
