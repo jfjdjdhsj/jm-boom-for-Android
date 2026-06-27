@@ -506,7 +506,9 @@ fn write_reader_page_cache(
     }
 
     if !should_decode_image(manifest, page) {
-        fs::write(cache_path, bytes).map_err(map_cache_error)?;
+        write_temp_reader_cache_file(cache_path, |temp_path| {
+            fs::write(temp_path, bytes).map_err(map_cache_error)
+        })?;
         cleanup_reader_cache(cache_root, cache_limit_bytes)?;
 
         return Ok((0, 0));
@@ -516,12 +518,47 @@ fn write_reader_page_cache(
     let decoded = decode_scrambled_image(original, manifest.read_id_number, &page.page_name)?;
     let (decoded_width, decoded_height) = decoded.dimensions();
 
-    DynamicImage::ImageRgba8(decoded)
-        .save_with_format(cache_path, ImageFormat::WebP)
-        .map_err(map_image_error)?;
+    write_temp_reader_cache_file(cache_path, |temp_path| {
+        DynamicImage::ImageRgba8(decoded)
+            .save_with_format(temp_path, ImageFormat::WebP)
+            .map_err(map_image_error)
+    })?;
     cleanup_reader_cache(cache_root, cache_limit_bytes)?;
 
     Ok((decoded_width, decoded_height))
+}
+
+fn write_temp_reader_cache_file<F>(cache_path: &Path, write: F) -> ApiResult<()>
+where
+    F: FnOnce(&Path) -> ApiResult<()>,
+{
+    let temp_path = reader_page_temp_cache_path(cache_path);
+
+    if temp_path.exists() {
+        let _ = fs::remove_file(&temp_path);
+    }
+
+    if let Err(error) = write(&temp_path) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error);
+    }
+
+    persist_reader_cache_file(&temp_path, cache_path)
+}
+
+fn persist_reader_cache_file(temp_path: &Path, cache_path: &Path) -> ApiResult<()> {
+    match fs::rename(temp_path, cache_path) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let _ = fs::remove_file(temp_path);
+
+            if cache_path.exists() {
+                Ok(())
+            } else {
+                Err(map_cache_error(error))
+            }
+        }
+    }
 }
 
 fn decode_scrambled_image(
@@ -630,6 +667,25 @@ fn reader_page_cache_path(
     Ok(read_dir.join(format!("{:04}.{extension}", page.index + 1)))
 }
 
+fn reader_page_temp_cache_path(cache_path: &Path) -> PathBuf {
+    let file_name = cache_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("page");
+    let nonce = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+
+    cache_path.with_file_name(format!("{}.{}.{}.tmp", file_name, std::process::id(), nonce))
+}
+
+fn is_reader_cache_temp_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("tmp"))
+}
+
 fn cleanup_reader_cache(cache_root: &Path, cache_limit_bytes: u64) -> ApiResult<()> {
     let files = collect_cache_files(cache_root)?;
     let total_size = files.iter().map(|file| file.size).sum::<u64>();
@@ -689,6 +745,10 @@ fn collect_cache_files_in(dir: &Path, files: &mut Vec<CacheFile>) -> ApiResult<(
         if metadata.is_dir() {
             collect_cache_files_in(&path, files)?;
         } else if metadata.is_file() {
+            if is_reader_cache_temp_path(&path) {
+                continue;
+            }
+
             files.push(CacheFile {
                 path,
                 size: metadata.len(),

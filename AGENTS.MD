@@ -187,6 +187,7 @@
 - 预取有限并发：`prefetch_comic_read_pages` 使用 `JoinSet` 按近邻优先顺序并发预取，并发数直接等于当前 `prefetchCount`；当前页加载不再共享预取并发限制。已跑 `cargo check`。
 - 非扰图快路径：`write_reader_page_cache` 对不需要解扰的图片直接写入原始 bytes，不再调用 `image::load_from_memory` 整图解码；冷缓存返回宽高 `0/0`，前端当前不依赖该字段排版，缓存命中仍可读图片尺寸。已跑 `cargo check`。
 - 单页预热渲染：`useReaderPages` 去掉 120ms 翻页等待，当前页 query 立即跟随 `currentIndex`；当前页 ready 后会额外 query 相邻前后页，并通过浏览器 `Image.decode()` 预热本地 asset 图片，减少下一次翻页时 WebView 解码等待。已跑 `node_modules/.bin/tsc.exe --noEmit` 和 `node_modules/.bin/vite.exe build`。
+- 缓存写入原子化：章节图片缓存先写入同目录 `.tmp` 文件，写完后再 rename 为正式缓存文件；缓存统计和清理跳过 `.tmp`，避免当前页、邻页预热和 Rust 预取并发读取半写文件时出现 `failed to fill whole buffer`。已跑 `cargo check`。
 
 ## 验证建议
 
