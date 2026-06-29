@@ -15,9 +15,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import type { ComicDetail } from '@/lib/api/comic'
+import type { ComicChapter, ComicDetail } from '@/lib/api/comic'
 import { ComicCover } from './shared'
-import { formatNumber, getNextChapter, resolveAlbumId } from './utils'
+import { formatChapterTitle, formatNumber, resolveAlbumId, sortChapters } from './utils'
 
 export function ComicHero({
   comic,
@@ -35,7 +35,7 @@ export function ComicHero({
   favoriteBusy?: boolean
 }) {
   const albumId = resolveAlbumId(comic)
-  const nextChapter = getNextChapter(comic.id, comic.series)
+  const startReading = resolveStartReadingTarget(comic)
   const statusBadges = [
     comic.price > 0 ? `${comic.price} 积分` : '免费',
     comic.purchased ? '已购买' : '',
@@ -77,15 +77,15 @@ export function ComicHero({
           <Button asChild>
             <Link
               to="/reader/$comicId"
-              params={{ comicId: comic.id }}
+              params={{ comicId: startReading.readId }}
               search={{
                 title: comic.title,
-                chapter: '正文',
+                chapter: startReading.chapterTitle,
                 albumId,
                 fromDetail: '1',
                 pageIndex: '0',
-                nextId: nextChapter?.id ?? '',
-                nextChapter: nextChapter?.title ?? ''
+                nextId: startReading.nextChapter?.id ?? '',
+                nextChapter: startReading.nextChapter?.title ?? ''
               }}
             >
               <BookOpenIcon className="size-4" />
@@ -110,6 +110,37 @@ export function ComicHero({
       </div>
     </section>
   )
+}
+
+function resolveStartReadingTarget(comic: ComicDetail) {
+  const sortedChapters = sortChapters(comic.series)
+  const firstChapterIndex = sortedChapters.length - 1
+  const firstChapter = sortedChapters[firstChapterIndex]
+
+  if (!firstChapter) {
+    return {
+      readId: comic.id,
+      chapterTitle: '正文',
+      nextChapter: null
+    }
+  }
+
+  return {
+    readId: firstChapter.id,
+    chapterTitle: formatChapterTitle(firstChapter, firstChapterIndex),
+    nextChapter: toReaderNextChapter(sortedChapters[firstChapterIndex - 1], firstChapterIndex - 1)
+  }
+}
+
+function toReaderNextChapter(chapter: ComicChapter | undefined, index: number) {
+  if (!chapter) {
+    return null
+  }
+
+  return {
+    id: chapter.id,
+    title: formatChapterTitle(chapter, index)
+  }
 }
 
 function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsClick: () => void }) {

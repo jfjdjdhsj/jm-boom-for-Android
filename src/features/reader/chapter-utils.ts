@@ -57,19 +57,15 @@ export function resolveCurrentChapterTitle({
 }) {
   const trimmedFallback = fallback.trim()
 
-  if (trimmedFallback.length > 0) {
-    return trimmedFallback
-  }
-
   if (chapters.length === 0) {
-    return ''
+    return trimmedFallback
   }
 
   const sortedChapters = sortChapters(chapters)
   const currentIndex = sortedChapters.findIndex(chapter => chapter.id === currentReadId)
 
   if (currentIndex < 0) {
-    return ''
+    return trimmedFallback
   }
 
   return formatChapterTitle(sortedChapters[currentIndex], currentIndex)
