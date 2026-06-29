@@ -20,6 +20,7 @@ import { Route as AppMeRouteImport } from './routes/_app/me'
 import { Route as AppListRouteImport } from './routes/_app/list'
 import { Route as AppHistoryRouteImport } from './routes/_app/history'
 import { Route as AppFavoritesRouteImport } from './routes/_app/favorites'
+import { Route as AppDownloadsRouteImport } from './routes/_app/downloads'
 import { Route as AppComicComicIdRouteImport } from './routes/_app/comic/$comicId'
 
 const AppRoute = AppRouteImport.update({
@@ -76,6 +77,11 @@ const AppFavoritesRoute = AppFavoritesRouteImport.update({
   path: '/favorites',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDownloadsRoute = AppDownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppComicComicIdRoute = AppComicComicIdRouteImport.update({
   id: '/comic/$comicId',
   path: '/comic/$comicId',
@@ -84,6 +90,7 @@ const AppComicComicIdRoute = AppComicComicIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/downloads': typeof AppDownloadsRoute
   '/favorites': typeof AppFavoritesRoute
   '/history': typeof AppHistoryRoute
   '/list': typeof AppListRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/comic/$comicId': typeof AppComicComicIdRoute
 }
 export interface FileRoutesByTo {
+  '/downloads': typeof AppDownloadsRoute
   '/favorites': typeof AppFavoritesRoute
   '/history': typeof AppHistoryRoute
   '/list': typeof AppListRoute
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/_app/downloads': typeof AppDownloadsRoute
   '/_app/favorites': typeof AppFavoritesRoute
   '/_app/history': typeof AppHistoryRoute
   '/_app/list': typeof AppListRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/downloads'
     | '/favorites'
     | '/history'
     | '/list'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/comic/$comicId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/downloads'
     | '/favorites'
     | '/history'
     | '/list'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/_app/downloads'
     | '/_app/favorites'
     | '/_app/history'
     | '/_app/list'
@@ -250,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFavoritesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/downloads': {
+      id: '/_app/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof AppDownloadsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/comic/$comicId': {
       id: '/_app/comic/$comicId'
       path: '/comic/$comicId'
@@ -261,6 +280,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppDownloadsRoute: typeof AppDownloadsRoute
   AppFavoritesRoute: typeof AppFavoritesRoute
   AppHistoryRoute: typeof AppHistoryRoute
   AppListRoute: typeof AppListRoute
@@ -274,6 +294,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppDownloadsRoute: AppDownloadsRoute,
   AppFavoritesRoute: AppFavoritesRoute,
   AppHistoryRoute: AppHistoryRoute,
   AppListRoute: AppListRoute,

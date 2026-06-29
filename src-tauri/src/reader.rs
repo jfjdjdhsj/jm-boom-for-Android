@@ -29,7 +29,7 @@ static PAGE_MATERIALIZE_LOCKS: OnceLock<Mutex<HashMap<PathBuf, Arc<AsyncMutex<()
     OnceLock::new();
 
 #[derive(Debug, Clone)]
-struct ReaderManifest {
+pub(crate) struct ReaderManifest {
     endpoint: String,
     read_id: String,
     read_id_number: u32,
@@ -191,7 +191,7 @@ impl ReaderManifest {
     }
 }
 
-async fn get_or_load_manifest(
+pub(crate) async fn get_or_load_manifest(
     read_id: String,
     endpoint: Option<String>,
 ) -> ApiResult<ReaderManifest> {
@@ -211,6 +211,12 @@ async fn get_or_load_manifest(
     cache_manifest(cache_key, manifest.clone());
 
     Ok(manifest)
+}
+
+impl ReaderManifest {
+    pub(crate) fn page_count(&self) -> u32 {
+        self.pages.len() as u32
+    }
 }
 
 async fn request_reader_chapter(
@@ -357,6 +363,56 @@ async fn materialize_reader_page(
     request_origin: Option<String>,
 ) -> ApiResult<ComicReadPageResult> {
     materialize_reader_page_inner(app, manifest, index, cache_limit_bytes, request_origin).await
+}
+
+pub(crate) async fn materialize_reader_page_to_path(
+    manifest: &ReaderManifest,
+    index: u32,
+    target_path: PathBuf,
+) -> ApiResult<(u32, u32, bool)> {
+    let page = manifest
+        .pages
+        .get(index as usize)
+        .ok_or_else(|| ApiError::new(ApiErrorKind::MissingData, "Reader page is out of range"))?
+        .clone();
+    let materialize_lock = reader_page_materialize_lock(&target_path);
+    let _materialize_guard = materialize_lock.lock().await;
+
+    if target_path.exists() {
+        match fs::metadata(&target_path) {
+            Ok(metadata) if metadata.is_file() => return Ok((0, 0, true)),
+            Ok(_) => {
+                let _ = fs::remove_file(&target_path);
+            }
+            Err(_) => {
+                let _ = fs::remove_file(&target_path);
+            }
+        }
+    }
+
+    let client = build_http_client()?;
+    let bytes = download_image_bytes(&client, &page.source_url, &manifest.endpoint).await?;
+    let manifest_for_decode = manifest.clone();
+    let page_for_decode = page.clone();
+    let target_path_for_decode = target_path.clone();
+
+    let (width, height) = tokio::task::spawn_blocking(move || {
+        write_reader_page_file(
+            &target_path_for_decode,
+            &manifest_for_decode,
+            &page_for_decode,
+            &bytes,
+        )
+    })
+    .await
+    .map_err(|error| {
+        ApiError::new(
+            ApiErrorKind::Decode,
+            format!("Failed to decode download page: {error}"),
+        )
+    })??;
+
+    Ok((width, height, false))
 }
 
 async fn materialize_reader_page_inner(
@@ -570,6 +626,48 @@ fn write_reader_page_cache(
     );
 
     Ok((decoded_width, decoded_height))
+}
+
+fn write_reader_page_file(
+    target_path: &Path,
+    manifest: &ReaderManifest,
+    page: &ReaderPage,
+    bytes: &[u8],
+) -> ApiResult<(u32, u32)> {
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent).map_err(map_cache_error)?;
+    }
+
+    if !should_decode_image(manifest, page) {
+        write_temp_reader_cache_file(target_path, |temp_path| {
+            fs::write(temp_path, bytes).map_err(map_cache_error)
+        })?;
+
+        return Ok((0, 0));
+    }
+
+    let original = image::load_from_memory(bytes).map_err(map_image_error)?;
+    let decoded = decode_scrambled_image(original, manifest.read_id_number, &page.page_name)?;
+    let (decoded_width, decoded_height) = decoded.dimensions();
+    let webp_bytes = encode_scrambled_webp_cache(&decoded);
+    write_temp_reader_cache_file(target_path, |temp_path| {
+        fs::write(temp_path, &webp_bytes).map_err(map_cache_error)
+    })?;
+
+    Ok((decoded_width, decoded_height))
+}
+
+pub(crate) fn reader_page_output_extension(manifest: &ReaderManifest, index: u32) -> ApiResult<&'static str> {
+    let page = manifest
+        .pages
+        .get(index as usize)
+        .ok_or_else(|| ApiError::new(ApiErrorKind::MissingData, "Reader page is out of range"))?;
+
+    Ok(if should_decode_image(manifest, page) {
+        "webp"
+    } else {
+        source_extension(&page.source_url)
+    })
 }
 
 fn encode_scrambled_webp_cache(decoded: &RgbImage) -> Vec<u8> {

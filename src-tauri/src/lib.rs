@@ -1,4 +1,5 @@
 mod api;
+mod download;
 mod plugin_codec;
 mod reader;
 mod updater;
@@ -236,6 +237,61 @@ async fn get_comic_read_page(
     .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn enqueue_comic_download(
+    app: tauri::AppHandle,
+    request: download::EnqueueDownloadRequest,
+) -> Result<download::DownloadTaskListResult, String> {
+    download::enqueue_comic_download(app, request)
+}
+
+#[tauri::command]
+fn list_download_tasks(app: tauri::AppHandle) -> Result<download::DownloadTaskListResult, String> {
+    download::list_download_tasks(app)
+}
+
+#[tauri::command]
+fn cancel_download_task(
+    app: tauri::AppHandle,
+    task_id: String,
+) -> Result<download::DownloadTaskListResult, String> {
+    download::cancel_download_task(app, task_id)
+}
+
+#[tauri::command]
+fn pause_download_task(
+    app: tauri::AppHandle,
+    task_id: String,
+) -> Result<download::DownloadTaskListResult, String> {
+    download::pause_download_task(app, task_id)
+}
+
+#[tauri::command]
+fn resume_download_task(
+    app: tauri::AppHandle,
+    task_id: String,
+) -> Result<download::DownloadTaskListResult, String> {
+    download::resume_download_task(app, task_id)
+}
+
+#[tauri::command]
+fn remove_download_task(
+    app: tauri::AppHandle,
+    task_id: String,
+) -> Result<download::DownloadTaskListResult, String> {
+    download::remove_download_task(app, task_id)
+}
+
+#[tauri::command]
+fn open_download_task_dir(app: tauri::AppHandle, task_id: String) -> Result<(), String> {
+    download::open_download_task_dir(app, task_id)
+}
+
+#[tauri::command]
+fn open_download_root_dir(app: tauri::AppHandle) -> Result<(), String> {
+    download::open_download_root_dir(app)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -263,6 +319,14 @@ pub fn run() {
             open_reader_cache_dir,
             get_comic_read_manifest,
             get_comic_read_page,
+            enqueue_comic_download,
+            list_download_tasks,
+            cancel_download_task,
+            pause_download_task,
+            resume_download_task,
+            remove_download_task,
+            open_download_task_dir,
+            open_download_root_dir,
             updater::check_app_update,
             updater::install_app_update
         ])

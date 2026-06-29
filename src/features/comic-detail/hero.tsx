@@ -22,12 +22,16 @@ import { formatNumber, getNextChapter, resolveAlbumId } from './utils'
 export function ComicHero({
   comic,
   onCommentsClick,
+  onDownloadClick,
   onFavoriteClick,
+  downloadBusy = false,
   favoriteBusy = false
 }: {
   comic: ComicDetail
   onCommentsClick: () => void
+  onDownloadClick: () => void
   onFavoriteClick: () => void
+  downloadBusy?: boolean
   favoriteBusy?: boolean
 }) {
   const albumId = resolveAlbumId(comic)
@@ -88,7 +92,7 @@ export function ComicHero({
               开始阅读
             </Link>
           </Button>
-          <Button variant="outline" disabled>
+          <Button variant="outline" disabled={downloadBusy} onClick={onDownloadClick}>
             <DownloadIcon className="size-4" />
             下载
           </Button>
