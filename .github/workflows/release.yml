@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build Windows
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend deps
+        run: bun install --frozen-lockfile
+
+      - name: Prepare Tauri signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is required" >&2
+            exit 1
+          fi
+
+          raw="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
+          key_path="$RUNNER_TEMP/tauri_signing.key"
+          if echo "$raw" | head -n1 | grep -q '^untrusted comment:'; then
+            printf '%s\n' "$raw" > "$key_path"
+          elif decoded=$(printf '%s' "$raw" | base64 --decode 2>/dev/null) && echo "$decoded" | head -n1 | grep -q '^untrusted comment:'; then
+            printf '%s\n' "$decoded" > "$key_path"
+          else
+            printf '%s\n%s\n' "untrusted comment: tauri signing key" "$raw" > "$key_path"
+          fi
+
+          key_b64=$(base64 < "$key_path" | tr -d '\r\n')
+          echo "TAURI_SIGNING_PRIVATE_KEY=$key_b64" >> "$GITHUB_ENV"
+          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build Tauri MSI
+        run: bun run tauri build --bundles msi
+
+      - name: Prepare release assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $version = '${{ github.ref_name }}'
+          $msi = Get-ChildItem -Path 'src-tauri/target/release/bundle/msi' -Recurse -Include *.msi | Select-Object -First 1
+          if ($null -eq $msi) {
+            throw 'No MSI artifact found'
+          }
+          $dest = "JM-Boom-$version-Windows.msi"
+          Copy-Item $msi.FullName "release-assets/$dest"
+          $sig = "$($msi.FullName).sig"
+          if (-not (Test-Path $sig)) {
+            throw "No updater signature found for $($msi.Name)"
+          }
+          Copy-Item $sig "release-assets/$dest.sig"
+
+      - name: Upload release assets to workflow
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets-windows-x86_64
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-22.04
+    needs: build-windows
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-assets-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Ensure release notes
+        run: test -f "docs/release-notes/${GITHUB_REF_NAME}.md"
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: JM Boom ${{ github.ref_name }}
+          body_path: docs/release-notes/${{ github.ref_name }}.md
+          prerelease: false
+          files: release-assets/*
+
+  assemble-latest-json:
+    name: Assemble latest.json
+    runs-on: ubuntu-22.04
+    needs: publish-release
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p dl
+          gh release download "$GITHUB_REF_NAME" --dir dl --repo "$GITHUB_REPOSITORY"
+
+      - name: Generate latest.json
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          pub_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          base_url="https://github.com/$REPO/releases/download/$TAG"
+          msi="JM-Boom-$TAG-Windows.msi"
+          sig_file="dl/$msi.sig"
+          test -f "$sig_file"
+          sig="$(cat "$sig_file")"
+          jq -n \
+            --arg version "$version" \
+            --arg notes "JM Boom $TAG" \
+            --arg pub_date "$pub_date" \
+            --arg signature "$sig" \
+            --arg url "$base_url/$msi" \
+            '{
+              version: $version,
+              notes: $notes,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": {
+                  signature: $signature,
+                  url: $url
+                }
+              }
+            }' > latest.json
+
+      - name: Upload latest.json to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" latest.json --clobber --repo "$GITHUB_REPOSITORY"

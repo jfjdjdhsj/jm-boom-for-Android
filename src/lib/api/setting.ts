@@ -1,3 +1,4 @@
+import { getVersion } from '@tauri-apps/api/app'
 import { invoke } from '@tauri-apps/api/core'
 
 export type RemoteSettingParams = {
@@ -18,6 +19,14 @@ export type ApiEndpointProbe = {
 }
 
 export type NetworkProxyMode = 'off' | 'http' | 'socks5'
+
+export type AppUpdateCheckResult = {
+  currentVersion: string
+  available: boolean
+  version: string | null
+  notes: string | null
+  pubDate: string | null
+}
 
 export async function getRemoteSetting({
   endpoint = null
@@ -51,4 +60,34 @@ export async function configureNetworkProxy({
   }
 
   return invoke('configure_network_proxy', { mode, host, port })
+}
+
+export async function getCurrentAppVersion(): Promise<string> {
+  if (!('__TAURI_INTERNALS__' in window)) {
+    return ''
+  }
+
+  return getVersion()
+}
+
+export async function checkAppUpdate(): Promise<AppUpdateCheckResult> {
+  if (!('__TAURI_INTERNALS__' in window)) {
+    return {
+      currentVersion: '',
+      available: false,
+      version: null,
+      notes: null,
+      pubDate: null
+    }
+  }
+
+  return invoke<AppUpdateCheckResult>('check_app_update')
+}
+
+export async function installAppUpdate(): Promise<boolean> {
+  if (!('__TAURI_INTERNALS__' in window)) {
+    return false
+  }
+
+  return invoke<boolean>('install_app_update')
 }

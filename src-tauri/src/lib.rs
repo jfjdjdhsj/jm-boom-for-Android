@@ -1,6 +1,7 @@
 mod api;
 mod plugin_codec;
 mod reader;
+mod updater;
 
 use api::{
     ApiEndpointProbe, ComicCommentsResult, ComicDetailResult, FavoriteListResult,
@@ -237,6 +238,7 @@ async fn get_comic_read_page(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_remote_setting,
             discover_api_endpoints,
@@ -258,7 +260,9 @@ pub fn run() {
             clear_reader_cache,
             open_reader_cache_dir,
             get_comic_read_manifest,
-            get_comic_read_page
+            get_comic_read_page,
+            updater::check_app_update,
+            updater::install_app_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
