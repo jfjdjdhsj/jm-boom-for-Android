@@ -54,11 +54,11 @@ const DOWNLOAD_FILTERS = [
   { value: 'paused', label: '已暂停' },
   { value: 'completed', label: '已完成' }
 ] as const
+const EMPTY_DOWNLOAD_TASKS: DownloadTask[] = []
 
 type DownloadFilter = (typeof DOWNLOAD_FILTERS)[number]['value']
 
 function DownloadsPage() {
-  const queryClient = useQueryClient()
   const [filter, setFilter] = useState<DownloadFilter>('all')
   const tasks = useQuery({
     queryKey: QUERY_KEY,
@@ -78,26 +78,12 @@ function DownloadsPage() {
     mutationFn: openDownloadRootDir,
     onError: showError
   })
-  const taskList = tasks.data?.tasks ?? []
+  const taskList = tasks.data?.tasks ?? EMPTY_DOWNLOAD_TASKS
   const filterCounts = useMemo(() => getFilterCounts(taskList), [taskList])
   const filteredTasks = useMemo(
     () => taskList.filter(task => matchesFilter(task, filter)),
     [filter, taskList]
   )
-
-  function useTaskMutation(
-    mutationFn: (taskId: string) => Promise<DownloadTaskListResult>,
-    message: string
-  ) {
-    return useMutation({
-      mutationFn,
-      onSuccess: result => {
-        queryClient.setQueryData(QUERY_KEY, result)
-        toast.success(message)
-      },
-      onError: showError
-    })
-  }
 
   return (
     <main className="min-h-screen bg-background p-[96px_32px_32px_96px] text-foreground">
@@ -171,6 +157,22 @@ function DownloadsPage() {
       </div>
     </main>
   )
+}
+
+function useTaskMutation(
+  mutationFn: (taskId: string) => Promise<DownloadTaskListResult>,
+  message: string
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn,
+    onSuccess: result => {
+      queryClient.setQueryData(QUERY_KEY, result)
+      toast.success(message)
+    },
+    onError: showError
+  })
 }
 
 function DownloadTaskCard({
