@@ -18,8 +18,14 @@ import {
   setDiagnosticsDebugLogging
 } from '@/lib/api/setting'
 import { clearReaderCache, getReaderCacheStats, openReaderCacheDir } from '@/lib/api/reader'
+import {
+  clearLoginCredentials,
+  getSavedLoginConfig,
+  saveLoginCredentials
+} from '@/lib/api/user'
 import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
+import { AccountSection } from './account-section'
 import { ApiEndpointSection } from './api-endpoint-section'
 import { AppearanceSection } from './appearance-section'
 import { CacheSection } from './cache-section'
@@ -70,6 +76,40 @@ export function SettingsPage() {
     onSuccess: data => {
       toast.success('阅读缓存已清理')
       queryClient.setQueryData(queryKeys.readerCacheStats(cacheLimitBytes), data)
+    },
+    onError: error => {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  })
+  const savedLoginConfig = useQuery({
+    queryKey: queryKeys.savedLoginConfig(),
+    queryFn: getSavedLoginConfig,
+    staleTime: 0,
+    refetchOnWindowFocus: false
+  })
+  const saveAccount = useMutation({
+    mutationFn: ({
+      username,
+      password,
+      autoLogin
+    }: {
+      username: string
+      password: string
+      autoLogin: boolean
+    }) => saveLoginCredentials({ username, password, endpoint: api, autoLogin }),
+    onSuccess: data => {
+      queryClient.setQueryData(queryKeys.savedLoginConfig(), data)
+      toast.success(data.autoLogin ? '自动登录已保存' : '账号配置已保存')
+    },
+    onError: error => {
+      toast.error(error instanceof Error ? error.message : String(error))
+    }
+  })
+  const clearAccount = useMutation({
+    mutationFn: clearLoginCredentials,
+    onSuccess: () => {
+      queryClient.setQueryData(queryKeys.savedLoginConfig(), null)
+      toast.success('自动登录配置已清除')
     },
     onError: error => {
       toast.error(error instanceof Error ? error.message : String(error))
@@ -237,6 +277,17 @@ export function SettingsPage() {
               isRefreshingEndpoints={isRefreshingEndpoints}
               onEndpointChange={setApi}
               onRefresh={refreshEndpoints}
+            />
+
+            <Separator />
+
+            <AccountSection
+              savedLoginConfig={savedLoginConfig.data}
+              isLoading={savedLoginConfig.isLoading}
+              isSaving={saveAccount.isPending}
+              isClearing={clearAccount.isPending}
+              onSave={input => saveAccount.mutate(input)}
+              onClear={() => clearAccount.mutate()}
             />
 
             <Separator />

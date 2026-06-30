@@ -11,6 +11,7 @@ import {
   UserRoundIcon
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import { FloatingNav, type FloatingNavItem } from '@/components/floating-nav'
 import { LoginDialog } from '@/features/user/login-dialog'
@@ -37,6 +38,7 @@ const NAV_ITEMS: FloatingNavItem[] = [
 function AppRoute() {
   const navigate = useNavigate()
   const user = useUserStore(state => state.user)
+  const initializeUser = useUserStore(state => state.initialize)
   const proxyMode = useSettingsStore(state => state.proxyMode)
   const proxyHost = useSettingsStore(state => state.proxyHost)
   const proxyPort = useSettingsStore(state => state.proxyPort)
@@ -54,6 +56,15 @@ function AppRoute() {
       .reverse()
       .find(item => (item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)))?.id ??
     'home'
+
+  useEffect(() => {
+    initializeUser().catch(error => {
+      console.error('Failed to restore user session', error)
+      toast.error('自动登录失败', {
+        description: error instanceof Error ? error.message : String(error)
+      })
+    })
+  }, [initializeUser])
 
   useEffect(() => {
     function syncNetworkProxy() {

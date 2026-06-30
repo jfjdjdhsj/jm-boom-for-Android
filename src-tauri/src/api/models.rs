@@ -437,13 +437,23 @@ pub struct ApiEndpointProbe {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LoginResult {
     pub endpoint: String,
     pub user: UserProfile,
 }
 
 #[derive(Debug, Serialize)]
+pub struct SavedLoginConfig {
+    pub endpoint: String,
+    pub username: String,
+    #[serde(rename = "autoLogin")]
+    pub auto_login: bool,
+    #[serde(rename = "hasPassword")]
+    pub has_password: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UserProfile {
     pub id: u32,
     pub username: String,

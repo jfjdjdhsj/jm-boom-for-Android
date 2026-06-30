@@ -9,8 +9,8 @@ mod updater;
 use api::{
     ApiEndpointProbe, ApiErrorDto, ApiErrorKind, ComicCommentsResult, ComicDetailResult,
     FavoriteListResult, FavoriteToggleResult, HomeFeedResult, HomeSectionListResult, LoginResult,
-    RemoteSettingResult, SearchResultContract, SignInDataResult, SignInResult, WeekFiltersResult,
-    WeekItemsResult,
+    RemoteSettingResult, SavedLoginConfig, SearchResultContract, SignInDataResult, SignInResult,
+    WeekFiltersResult, WeekItemsResult,
 };
 use reader::{ComicReadManifestResult, ComicReadPageResult, ReaderCacheStatsResult};
 use std::collections::HashMap;
@@ -146,8 +146,9 @@ async fn login(
     username: String,
     password: String,
     endpoint: Option<String>,
+    remember_login: Option<bool>,
 ) -> CommandResult<LoginResult> {
-    api::login(username, password, endpoint)
+    api::login(username, password, endpoint, remember_login.unwrap_or(false))
         .await
         .map_err(Into::into)
 }
@@ -174,8 +175,35 @@ async fn sign_in(
 }
 
 #[tauri::command]
-fn clear_session() {
-    api::clear_session();
+async fn get_current_session() -> CommandResult<Option<LoginResult>> {
+    api::get_current_session().await.map_err(Into::into)
+}
+
+#[tauri::command]
+async fn clear_session() -> CommandResult<()> {
+    api::clear_stored_session().await.map_err(Into::into)
+}
+
+#[tauri::command]
+async fn get_saved_login_config() -> CommandResult<Option<SavedLoginConfig>> {
+    api::get_saved_login_config().await.map_err(Into::into)
+}
+
+#[tauri::command]
+async fn save_login_credentials(
+    username: String,
+    password: String,
+    endpoint: Option<String>,
+    auto_login: bool,
+) -> CommandResult<SavedLoginConfig> {
+    api::save_login_credentials(username, password, endpoint, auto_login)
+        .await
+        .map_err(Into::into)
+}
+
+#[tauri::command]
+async fn clear_login_credentials() -> CommandResult<()> {
+    api::clear_login_credentials().await.map_err(Into::into)
 }
 
 #[tauri::command]
@@ -361,6 +389,10 @@ pub fn run() {
             get_favorite_comics,
             get_comic_comments,
             login,
+            get_current_session,
+            get_saved_login_config,
+            save_login_credentials,
+            clear_login_credentials,
             get_sign_in_data,
             sign_in,
             clear_session,

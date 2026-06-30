@@ -14,6 +14,7 @@ export const queryKeys = {
   homeFeed: (endpoint: QueryEndpoint) => ['jm-home-feed', endpoint] as const,
   homeSectionList: (endpoint: QueryEndpoint, search: unknown) =>
     ['jm-home-section-list', endpoint, search] as const,
+  savedLoginConfig: () => ['saved-login-config'] as const,
   ranking: (endpoint: QueryEndpoint, page: number, category: string, order: string) =>
     ['jm-ranking', endpoint, page, category, order] as const,
   readerCacheStats: (cacheLimitBytes: number) => ['reader-cache-stats', cacheLimitBytes] as const,

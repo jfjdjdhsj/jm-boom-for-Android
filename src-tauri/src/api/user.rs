@@ -4,6 +4,7 @@ pub async fn login(
     username: String,
     password: String,
     endpoint: Option<String>,
+    remember_login: bool,
 ) -> ApiResult<LoginResult> {
     let username = username.trim().to_string();
 
@@ -23,7 +24,19 @@ pub async fn login(
     let payload_future = request_login(&client, &endpoint, &username, &password, &login_auth);
     let (img_host_result, payload_result) = tokio::join!(img_host_future, payload_future);
     let payload = payload_result?;
-    set_jwt_token(payload.jwttoken.as_deref())?;
+    let jwt_token = payload
+        .jwttoken
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    if jwt_token.is_empty() {
+        return Err(ApiError::new(
+            ApiErrorKind::MissingData,
+            "Login response did not include a session token",
+        ));
+    }
+    set_jwt_token(Some(&jwt_token))?;
     let img_host = match img_host_result {
         Ok(img_host) => Some(img_host),
         Err(error) => {
@@ -32,10 +45,63 @@ pub async fn login(
         }
     };
 
-    Ok(LoginResult {
+    let result = LoginResult {
         endpoint,
         user: map_login_user(payload, img_host.as_deref()),
-    })
+    };
+    if remember_login {
+        crate::storage::session::save_login_credentials(
+            &result.endpoint,
+            &username,
+            &password,
+            true,
+        )
+        .await?;
+    }
+
+    Ok(result)
+}
+
+pub async fn get_current_session() -> ApiResult<Option<LoginResult>> {
+    if let Some(credentials) = crate::storage::session::load_saved_login_credentials().await? {
+        if credentials.auto_login {
+            return login(
+                credentials.username,
+                credentials.password,
+                Some(credentials.endpoint),
+                false,
+            )
+            .await
+            .map(Some);
+        }
+    }
+
+    set_jwt_token(None)?;
+    Ok(None)
+}
+
+pub async fn clear_stored_session() -> ApiResult<()> {
+    clear_session();
+    crate::storage::session::clear_login_credentials().await
+}
+
+pub async fn get_saved_login_config() -> ApiResult<Option<SavedLoginConfig>> {
+    crate::storage::session::load_saved_login_config().await
+}
+
+pub async fn save_login_credentials(
+    username: String,
+    password: String,
+    endpoint: Option<String>,
+    auto_login: bool,
+) -> ApiResult<SavedLoginConfig> {
+    let endpoint = resolve_api_endpoint(endpoint)?;
+    crate::storage::session::save_login_credentials(&endpoint, &username, &password, auto_login)
+        .await
+}
+
+pub async fn clear_login_credentials() -> ApiResult<()> {
+    crate::storage::session::clear_login_credentials().await
 }
 
 pub async fn get_sign_in_data(

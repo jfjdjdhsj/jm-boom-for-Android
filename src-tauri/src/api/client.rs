@@ -26,7 +26,6 @@ pub fn configure_network_proxy(
 
     *proxy_config = next_config;
     reset_http_client()?;
-    clear_session();
 
     Ok(())
 }

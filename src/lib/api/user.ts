@@ -21,6 +21,13 @@ export type LoginResult = {
   user: UserProfile
 }
 
+export type SavedLoginConfig = {
+  endpoint: string
+  username: string
+  autoLogin: boolean
+  hasPassword: boolean
+}
+
 export type SignInRecord = {
   day: number
   date: string
@@ -50,13 +57,46 @@ export type SignInResult = {
 export async function login({
   username,
   password,
-  endpoint = null
+  endpoint = null,
+  rememberLogin = false
 }: {
   username: string
   password: string
   endpoint?: string | null
+  rememberLogin?: boolean
 }): Promise<LoginResult> {
-  return tauriInvoke<LoginResult>('login', { username, password, endpoint })
+  return tauriInvoke<LoginResult>('login', { username, password, endpoint, rememberLogin })
+}
+
+export async function getCurrentSession(): Promise<LoginResult | null> {
+  return tauriInvoke<LoginResult | null>('get_current_session')
+}
+
+export async function getSavedLoginConfig(): Promise<SavedLoginConfig | null> {
+  return tauriInvoke<SavedLoginConfig | null>('get_saved_login_config')
+}
+
+export async function saveLoginCredentials({
+  username,
+  password,
+  endpoint = null,
+  autoLogin
+}: {
+  username: string
+  password: string
+  endpoint?: string | null
+  autoLogin: boolean
+}): Promise<SavedLoginConfig> {
+  return tauriInvoke<SavedLoginConfig>('save_login_credentials', {
+    username,
+    password,
+    endpoint,
+    autoLogin
+  })
+}
+
+export async function clearLoginCredentials(): Promise<void> {
+  return tauriInvoke<void>('clear_login_credentials')
 }
 
 export async function getSignInData({

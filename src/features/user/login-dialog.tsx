@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { LoaderCircleIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -47,11 +48,13 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
   const endpoint = useSettingsStore(state => state.api)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberLogin, setRememberLogin] = useState(false)
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setUsername('')
       setPassword('')
+      setRememberLogin(false)
     }
 
     onOpenChange(nextOpen)
@@ -66,7 +69,7 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
     }
 
     try {
-      await login({ username: nextUsername, password: nextPassword, endpoint })
+      await login({ username: nextUsername, password: nextPassword, endpoint, rememberLogin })
       toast.success('登录成功')
       handleOpenChange(false)
       onLoginSuccess?.()
@@ -107,6 +110,13 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
               type="password"
             />
           </Field>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox
+              checked={rememberLogin}
+              onCheckedChange={checked => setRememberLogin(checked === true)}
+            />
+            保持登录
+          </label>
         </FieldGroup>
         <DialogFooter>
           <Button

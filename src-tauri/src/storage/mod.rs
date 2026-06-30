@@ -1,6 +1,7 @@
 mod db;
 mod migrations;
 pub(crate) mod runtime_cache;
+pub(crate) mod session;
 
 use sqlx::SqlitePool;
 use std::sync::OnceLock;

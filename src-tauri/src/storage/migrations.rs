@@ -1,6 +1,6 @@
 use sqlx::SqlitePool;
 
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 4;
 
 pub(crate) async fn run(pool: &SqlitePool) -> Result<(), String> {
     sqlx::query("PRAGMA foreign_keys = ON")
@@ -26,6 +26,16 @@ pub(crate) async fn run(pool: &SqlitePool) -> Result<(), String> {
 
     if current_version < 2 {
         migrate_schema_v2(pool).await?;
+        current_version = 2;
+    }
+
+    if current_version < 3 {
+        migrate_schema_v3(pool).await?;
+        current_version = 3;
+    }
+
+    if current_version < 4 {
+        migrate_schema_v4(pool).await?;
     }
 
     set_schema_version(pool, SCHEMA_VERSION).await?;
@@ -120,6 +130,7 @@ async fn create_schema_v1(pool: &SqlitePool) -> Result<(), String> {
         "CREATE INDEX IF NOT EXISTS idx_runtime_cache_kind_expires ON runtime_cache_entries(cache_kind, expires_at)",
     )
     .await?;
+    create_saved_login_credentials_table(pool).await?;
 
     Ok(())
 }
@@ -146,6 +157,31 @@ async fn migrate_schema_v2(pool: &SqlitePool) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+async fn migrate_schema_v3(pool: &SqlitePool) -> Result<(), String> {
+    create_saved_login_credentials_table(pool).await
+}
+
+async fn migrate_schema_v4(pool: &SqlitePool) -> Result<(), String> {
+    execute(pool, "DROP TABLE IF EXISTS current_user_session").await
+}
+
+async fn create_saved_login_credentials_table(pool: &SqlitePool) -> Result<(), String> {
+    execute(
+        pool,
+        r#"
+        CREATE TABLE IF NOT EXISTS saved_login_credentials (
+            id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
+            endpoint TEXT NOT NULL,
+            username_cipher TEXT NOT NULL,
+            password_cipher TEXT NOT NULL,
+            auto_login INTEGER NOT NULL DEFAULT 0,
+            updated_at INTEGER NOT NULL
+        )
+        "#,
+    )
+    .await
 }
 
 async fn execute(pool: &SqlitePool, statement: &str) -> Result<(), String> {
