@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { tauriInvoke } from './tauri'
 import type { FeedComic } from './home'
 
 export type RelatedComic = {
@@ -86,9 +86,7 @@ export async function getComicDetail(
   comicId: string,
   endpoint: string | null = null
 ): Promise<ComicDetailResult> {
-  ensureTauriRuntime()
-
-  return invoke<ComicDetailResult>('get_comic_detail', {
+  return tauriInvoke<ComicDetailResult>('get_comic_detail', {
     comicId,
     endpoint
   })
@@ -103,9 +101,7 @@ export async function getComicComments({
   page?: number
   endpoint?: string | null
 }): Promise<ComicCommentsResult> {
-  ensureTauriRuntime()
-
-  return invoke<ComicCommentsResult>('get_comic_comments', {
+  return tauriInvoke<ComicCommentsResult>('get_comic_comments', {
     comicId,
     page,
     endpoint
@@ -121,9 +117,7 @@ export async function toggleComicFavorite({
   currentFavorite: boolean
   endpoint?: string | null
 }): Promise<FavoriteToggleResult> {
-  ensureTauriRuntime()
-
-  return invoke<FavoriteToggleResult>('toggle_comic_favorite', {
+  return tauriInvoke<FavoriteToggleResult>('toggle_comic_favorite', {
     comicId,
     currentFavorite,
     endpoint
@@ -141,18 +135,10 @@ export async function getFavoriteComics({
   order?: string
   endpoint?: string | null
 } = {}): Promise<FavoriteListResult> {
-  ensureTauriRuntime()
-
-  return invoke<FavoriteListResult>('get_favorite_comics', {
+  return tauriInvoke<FavoriteListResult>('get_favorite_comics', {
     page,
     folderId,
     order,
     endpoint
   })
-}
-
-function ensureTauriRuntime() {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('This content needs the Tauri desktop runtime.')
-  }
 }

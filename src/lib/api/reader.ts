@@ -1,4 +1,5 @@
-import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { convertFileSrc } from '@tauri-apps/api/core'
+import { tauriInvoke } from './tauri'
 
 export type ComicReadManifestResult = {
   endpoint: string
@@ -34,9 +35,7 @@ export async function getComicReadManifest({
   readId: string
   endpoint?: string | null
 }): Promise<ComicReadManifestResult> {
-  ensureTauriRuntime()
-
-  return invoke<ComicReadManifestResult>('get_comic_read_manifest', {
+  return tauriInvoke<ComicReadManifestResult>('get_comic_read_manifest', {
     readId,
     endpoint
   })
@@ -55,9 +54,7 @@ export async function getComicReadPage({
   requestOrigin?: ReaderPageRequestOrigin | null
   cacheLimitBytes?: number | null
 }): Promise<ComicReadPageResult> {
-  ensureTauriRuntime()
-
-  return invoke<ComicReadPageResult>('get_comic_read_page', {
+  return tauriInvoke<ComicReadPageResult>('get_comic_read_page', {
     readId,
     index,
     endpoint,
@@ -69,31 +66,19 @@ export async function getComicReadPage({
 export async function getReaderCacheStats(
   cacheLimitBytes: number | null = null
 ): Promise<ReaderCacheStatsResult> {
-  ensureTauriRuntime()
-
-  return invoke<ReaderCacheStatsResult>('get_reader_cache_stats', { cacheLimitBytes })
+  return tauriInvoke<ReaderCacheStatsResult>('get_reader_cache_stats', { cacheLimitBytes })
 }
 
 export async function clearReaderCache(
   cacheLimitBytes: number | null = null
 ): Promise<ReaderCacheStatsResult> {
-  ensureTauriRuntime()
-
-  return invoke<ReaderCacheStatsResult>('clear_reader_cache', { cacheLimitBytes })
+  return tauriInvoke<ReaderCacheStatsResult>('clear_reader_cache', { cacheLimitBytes })
 }
 
 export async function openReaderCacheDir(): Promise<void> {
-  ensureTauriRuntime()
-
-  return invoke('open_reader_cache_dir')
+  return tauriInvoke<void>('open_reader_cache_dir')
 }
 
 export function readerFileSrc(path: string) {
   return convertFileSrc(path)
-}
-
-function ensureTauriRuntime() {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('This content needs the Tauri desktop runtime.')
-  }
 }

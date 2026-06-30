@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { searchComic, type ComicListItem } from '@/lib/api/search'
 import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
+import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
 
 type SearchPageSearch = {
@@ -65,7 +66,7 @@ function SearchPage() {
   }, [search.keyword])
 
   const query = useQuery({
-    queryKey: ['jm-search', endpoint, keyword, search.page, search.sortBy],
+    queryKey: queryKeys.search(endpoint, keyword, search.page, search.sortBy),
     queryFn: () =>
       searchComic({
         keyword,

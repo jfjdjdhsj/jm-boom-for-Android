@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { getFavoriteComics } from '@/lib/api/comic'
 import { FAVORITES_QUERY_GC_TIME, FAVORITES_QUERY_STALE_TIME } from '@/lib/query-cache'
+import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useUserStore } from '@/stores/user-store'
 
@@ -35,7 +36,7 @@ function FavoritesPage() {
   const [folderId, setFolderId] = useState(ALL_FAVORITES_FOLDER)
   const activeFolderId = folderId === ALL_FAVORITES_FOLDER ? '' : folderId
   const favorites = useQuery({
-    queryKey: ['jm-favorites', endpoint, activeFolderId, page],
+    queryKey: queryKeys.favorites(endpoint, activeFolderId, page),
     queryFn: () =>
       getFavoriteComics({
         page,

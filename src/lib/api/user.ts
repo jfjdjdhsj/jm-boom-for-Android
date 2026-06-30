@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { tauriInvoke } from './tauri'
 
 export type UserProfile = {
   id: number
@@ -56,9 +56,7 @@ export async function login({
   password: string
   endpoint?: string | null
 }): Promise<LoginResult> {
-  ensureTauriRuntime()
-
-  return invoke<LoginResult>('login', { username, password, endpoint })
+  return tauriInvoke<LoginResult>('login', { username, password, endpoint })
 }
 
 export async function getSignInData({
@@ -68,9 +66,7 @@ export async function getSignInData({
   userId: number
   endpoint?: string | null
 }): Promise<SignInDataResult> {
-  ensureTauriRuntime()
-
-  return invoke<SignInDataResult>('get_sign_in_data', { userId, endpoint })
+  return tauriInvoke<SignInDataResult>('get_sign_in_data', { userId, endpoint })
 }
 
 export async function signIn({
@@ -82,19 +78,9 @@ export async function signIn({
   dailyId: number
   endpoint?: string | null
 }): Promise<SignInResult> {
-  ensureTauriRuntime()
-
-  return invoke<SignInResult>('sign_in', { userId, dailyId, endpoint })
+  return tauriInvoke<SignInResult>('sign_in', { userId, dailyId, endpoint })
 }
 
-export async function clearSession() {
-  ensureTauriRuntime()
-
-  return invoke('clear_session')
-}
-
-function ensureTauriRuntime() {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('This content needs the Tauri desktop runtime.')
-  }
+export async function clearSession(): Promise<void> {
+  return tauriInvoke<void>('clear_session')
 }

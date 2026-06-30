@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
 import { getComicDetail } from '@/lib/api/comic'
+import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
 import { READER_GC_TIME, READER_STALE_TIME } from './constants'
 import { resolveCurrentChapterTitle, resolveNextChapter, toNextChapter } from './chapter-utils'
@@ -17,7 +18,7 @@ export function useReaderChapterInfo({ comicId, search }: { comicId: string; sea
     [search.nextId, search.nextChapter]
   )
   const albumDetail = useQuery({
-    queryKey: ['jm-comic-detail', endpoint, albumId],
+    queryKey: queryKeys.comicDetail(endpoint, albumId),
     queryFn: () => getComicDetail(albumId, endpoint),
     enabled: albumId.length > 0,
     staleTime: READER_STALE_TIME,

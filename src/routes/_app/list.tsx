@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { getHomeSectionList, type HomeSectionListMode } from '@/lib/api/home'
 import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
+import { queryKeys } from '@/lib/query-keys'
 import {
   defaultRankingCategory,
   rankingCategoryApiValue,
@@ -87,7 +88,7 @@ function HomeSectionListPage() {
   }, [search])
 
   const query = useQuery({
-    queryKey: ['jm-home-section-list', endpoint, search, page, category, week, order],
+    queryKey: queryKeys.homeSectionList(endpoint, search, page, category, week, order),
     queryFn: () =>
       getHomeSectionList({
         mode: search.mode,

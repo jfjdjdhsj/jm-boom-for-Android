@@ -6,6 +6,7 @@ import {
   getComicReadPage,
   readerFileSrc
 } from '@/lib/api/reader'
+import { queryKeys } from '@/lib/query-keys'
 import { READER_GC_TIME, READER_STALE_TIME } from './constants'
 import { useSettingsStore } from '@/stores/settings-store'
 
@@ -21,7 +22,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
   const prefetchKeyRef = useRef('')
 
   const manifest = useQuery({
-    queryKey: ['jm-reader-manifest', endpoint, comicId],
+    queryKey: queryKeys.readerManifest(endpoint, comicId),
     queryFn: () => getComicReadManifest({ readId: comicId, endpoint }),
     staleTime: READER_STALE_TIME,
     gcTime: READER_GC_TIME,
@@ -35,14 +36,7 @@ export function useReaderPages(comicId: string, initialIndex = 0) {
   )
   const effectiveCurrentIndex = pageCount > 0 ? clampPageIndex(currentIndex) : currentIndex
   const pageQueryKey = useCallback(
-    (index: number) =>
-      [
-        'jm-reader-page',
-        endpoint,
-        comicId,
-        cacheLimitBytes,
-        index
-      ] as const,
+    (index: number) => queryKeys.readerPage(endpoint, comicId, cacheLimitBytes, index),
     [cacheLimitBytes, comicId, endpoint]
   )
   const requestPage = useCallback(

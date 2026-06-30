@@ -20,6 +20,7 @@ import {
   LONG_LIVED_FILTERS_GC_TIME,
   LONG_LIVED_FILTERS_STALE_TIME
 } from '@/lib/query-cache'
+import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
 
 export const Route = createFileRoute('/_app/weekly')({
@@ -32,7 +33,7 @@ function WeeklyPage() {
   const [typeId, setTypeId] = useState<string | null>(null)
 
   const filters = useQuery({
-    queryKey: ['week-filters', endpoint],
+    queryKey: queryKeys.weekFilters(endpoint),
     queryFn: () => getWeekFilters(endpoint),
     staleTime: LONG_LIVED_FILTERS_STALE_TIME,
     gcTime: LONG_LIVED_FILTERS_GC_TIME,
@@ -65,7 +66,7 @@ function WeeklyPage() {
   const canLoadItems = selectedCategoryId.length > 0 && selectedTypeId.length > 0
 
   const items = useQuery({
-    queryKey: ['jm-week-items', endpoint, selectedCategoryId, selectedTypeId, 1],
+    queryKey: queryKeys.weekItems(endpoint, selectedCategoryId, selectedTypeId, 1),
     queryFn: () =>
       getWeekItems({
         categoryId: selectedCategoryId,

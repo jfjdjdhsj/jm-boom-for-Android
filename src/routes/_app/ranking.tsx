@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { getHomeSectionList } from '@/lib/api/home'
 import { LIST_QUERY_GC_TIME, LIST_QUERY_STALE_TIME } from '@/lib/query-cache'
+import { queryKeys } from '@/lib/query-keys'
 import {
   defaultRankingCategory,
   rankingCategoryApiValue,
@@ -41,7 +42,7 @@ function RankingPage() {
   const categories = rankingCategoryOptions()
 
   const query = useQuery({
-    queryKey: ['jm-ranking', endpoint, page, category, order],
+    queryKey: queryKeys.ranking(endpoint, page, category, order),
     queryFn: () =>
       getHomeSectionList({
         mode: 'ranking',

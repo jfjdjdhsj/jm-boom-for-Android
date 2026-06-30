@@ -1,5 +1,5 @@
 import { getVersion } from '@tauri-apps/api/app'
-import { invoke } from '@tauri-apps/api/core'
+import { hasTauriRuntime, tauriInvoke } from './tauri'
 
 export type RemoteSettingParams = {
   endpoint?: string | null
@@ -38,19 +38,19 @@ export type DiagnosticsInfo = {
 export async function getRemoteSetting({
   endpoint = null
 }: RemoteSettingParams = {}): Promise<RemoteSetting> {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('Remote setting needs the Tauri desktop runtime.')
-  }
-
-  return invoke<RemoteSetting>('get_remote_setting', { endpoint })
+  return tauriInvoke<RemoteSetting>(
+    'get_remote_setting',
+    { endpoint },
+    'Remote setting needs the Tauri desktop runtime.'
+  )
 }
 
 export async function discoverApiEndpoints(): Promise<ApiEndpointProbe[]> {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('API endpoint discovery needs the Tauri desktop runtime.')
-  }
-
-  return invoke<ApiEndpointProbe[]>('discover_api_endpoints')
+  return tauriInvoke<ApiEndpointProbe[]>(
+    'discover_api_endpoints',
+    undefined,
+    'API endpoint discovery needs the Tauri desktop runtime.'
+  )
 }
 
 export async function configureNetworkProxy({
@@ -62,15 +62,15 @@ export async function configureNetworkProxy({
   host: string
   port: number
 }): Promise<void> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return
   }
 
-  return invoke('configure_network_proxy', { mode, host, port })
+  return tauriInvoke<void>('configure_network_proxy', { mode, host, port })
 }
 
 export async function getCurrentAppVersion(): Promise<string> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return ''
   }
 
@@ -78,7 +78,7 @@ export async function getCurrentAppVersion(): Promise<string> {
 }
 
 export async function checkAppUpdate(): Promise<AppUpdateCheckResult> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return {
       currentVersion: '',
       available: false,
@@ -88,42 +88,42 @@ export async function checkAppUpdate(): Promise<AppUpdateCheckResult> {
     }
   }
 
-  return invoke<AppUpdateCheckResult>('check_app_update')
+  return tauriInvoke<AppUpdateCheckResult>('check_app_update')
 }
 
 export async function installAppUpdate(): Promise<boolean> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return false
   }
 
-  return invoke<boolean>('install_app_update')
+  return tauriInvoke<boolean>('install_app_update')
 }
 
 export async function getDiagnosticsInfo(): Promise<DiagnosticsInfo> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return emptyDiagnosticsInfo()
   }
 
-  return invoke<DiagnosticsInfo>('get_diagnostics_info')
+  return tauriInvoke<DiagnosticsInfo>('get_diagnostics_info')
 }
 
 export async function openDiagnosticsLogDir(): Promise<void> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return
   }
 
-  return invoke('open_diagnostics_log_dir')
+  return tauriInvoke<void>('open_diagnostics_log_dir')
 }
 
 export async function setDiagnosticsDebugLogging(enabled: boolean): Promise<DiagnosticsInfo> {
-  if (!('__TAURI_INTERNALS__' in window)) {
+  if (!hasTauriRuntime()) {
     return {
       ...emptyDiagnosticsInfo(),
       debugLoggingEnabled: enabled
     }
   }
 
-  return invoke<DiagnosticsInfo>('set_diagnostics_debug_logging', { enabled })
+  return tauriInvoke<DiagnosticsInfo>('set_diagnostics_debug_logging', { enabled })
 }
 
 function emptyDiagnosticsInfo(): DiagnosticsInfo {

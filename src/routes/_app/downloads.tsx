@@ -41,13 +41,14 @@ import {
   type DownloadTaskListResult,
   type DownloadTaskStatus
 } from '@/lib/api/download'
+import { formatBytes, formatDuration } from '@/lib/format'
+import { queryKeys } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/downloads')({
   component: DownloadsPage
 })
 
-const QUERY_KEY = ['jm-download-tasks']
 const DOWNLOAD_FILTERS = [
   { value: 'all', label: '全部' },
   { value: 'active', label: '下载中' },
@@ -61,7 +62,7 @@ type DownloadFilter = (typeof DOWNLOAD_FILTERS)[number]['value']
 function DownloadsPage() {
   const [filter, setFilter] = useState<DownloadFilter>('all')
   const tasks = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.downloadTasks(),
     queryFn: listDownloadTasks,
     refetchInterval: 1000,
     refetchOnWindowFocus: false
@@ -168,7 +169,7 @@ function useTaskMutation(
   return useMutation({
     mutationFn,
     onSuccess: result => {
-      queryClient.setQueryData(QUERY_KEY, result)
+      queryClient.setQueryData(queryKeys.downloadTasks(), result)
       toast.success(message)
     },
     onError: showError
@@ -338,21 +339,6 @@ function formatTaskMeta(task: DownloadTask) {
   if (task.status === 'completed') return '已完成'
   if (task.status === 'cancelled') return '已取消'
   return '失败'
-}
-
-function formatDuration(seconds: number) {
-  if (seconds < 60) return `${seconds} 秒`
-  const minutes = Math.ceil(seconds / 60)
-  if (minutes < 60) return `${minutes} 分钟`
-  return `${Math.ceil(minutes / 60)} 小时`
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  const kb = bytes / 1024
-  if (kb < 1024) return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`
-  const mb = kb / 1024
-  return `${mb.toFixed(mb >= 100 ? 0 : 1)} MB`
 }
 
 function showError(error: unknown) {

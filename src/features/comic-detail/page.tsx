@@ -9,8 +9,10 @@ import {
   getComicComments,
   getComicDetail,
   toggleComicFavorite,
-  type ComicDetail
+  type ComicDetail,
+  type ComicDetailResult
 } from '@/lib/api/comic'
+import { queryKeys } from '@/lib/query-keys'
 import { ChaptersSection } from './chapters'
 import { CommentsDrawer } from './comments'
 import {
@@ -35,7 +37,7 @@ export function ComicDetailPage({ comicId }: { comicId: string }) {
   const router = useRouter()
   const endpoint = useSettingsStore(state => state.api)
   const detail = useQuery({
-    queryKey: ['jm-comic-detail', endpoint, comicId],
+    queryKey: queryKeys.comicDetail(endpoint, comicId),
     queryFn: () => getComicDetail(comicId, endpoint),
     staleTime: DETAIL_STALE_TIME,
     gcTime: DETAIL_GC_TIME,
@@ -99,19 +101,22 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
         endpoint
       }),
     onSuccess: result => {
-      queryClient.setQueryData(['jm-comic-detail', endpoint, comic.id], (current: any) => {
-        if (current == null) {
-          return current
-        }
+      queryClient.setQueryData<ComicDetailResult | undefined>(
+        queryKeys.comicDetail(endpoint, comic.id),
+        current => {
+          if (current == null) {
+            return current
+          }
 
-        return {
-          ...current,
-          comic: {
-            ...current.comic,
-            isFavorite: result.favorited
+          return {
+            ...current,
+            comic: {
+              ...current.comic,
+              isFavorite: result.favorited
+            }
           }
         }
-      })
+      )
       toast.success(result.favorited ? '已添加收藏' : '已取消收藏')
     },
     onError: error => {
@@ -127,7 +132,7 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
         chapters
       }),
     onSuccess: result => {
-      queryClient.setQueryData(['jm-download-tasks'], result)
+      queryClient.setQueryData(queryKeys.downloadTasks(), result)
       setIsDownloadOpen(false)
       toast.success('已加入下载队列，可在下载页查看进度')
     },
@@ -136,7 +141,7 @@ function ComicDetailView({ comic }: { comic: ComicDetail }) {
     }
   })
   const commentsQuery = useInfiniteQuery({
-    queryKey: ['jm-comic-comments', endpoint, comic.id],
+    queryKey: queryKeys.comicComments(endpoint, comic.id),
     queryFn: ({ pageParam }) => getComicComments({ comicId: comic.id, page: pageParam, endpoint }),
     initialPageParam: 1,
     enabled: isCommentsOpen,

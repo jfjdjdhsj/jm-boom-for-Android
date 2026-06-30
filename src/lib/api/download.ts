@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { tauriInvoke } from './tauri'
 
 export type DownloadChapterRequest = {
   chapterId: string
@@ -49,55 +49,33 @@ export type DownloadTaskListResult = {
 export async function enqueueComicDownload(
   request: EnqueueDownloadRequest
 ): Promise<DownloadTaskListResult> {
-  ensureTauriRuntime()
-
-  return invoke<DownloadTaskListResult>('enqueue_comic_download', { request })
+  return tauriInvoke<DownloadTaskListResult>('enqueue_comic_download', { request })
 }
 
 export async function listDownloadTasks(): Promise<DownloadTaskListResult> {
-  ensureTauriRuntime()
-
-  return invoke<DownloadTaskListResult>('list_download_tasks')
+  return tauriInvoke<DownloadTaskListResult>('list_download_tasks')
 }
 
 export async function cancelDownloadTask(taskId: string): Promise<DownloadTaskListResult> {
-  ensureTauriRuntime()
-
-  return invoke<DownloadTaskListResult>('cancel_download_task', { taskId })
+  return tauriInvoke<DownloadTaskListResult>('cancel_download_task', { taskId })
 }
 
 export async function pauseDownloadTask(taskId: string): Promise<DownloadTaskListResult> {
-  ensureTauriRuntime()
-
-  return invoke<DownloadTaskListResult>('pause_download_task', { taskId })
+  return tauriInvoke<DownloadTaskListResult>('pause_download_task', { taskId })
 }
 
 export async function resumeDownloadTask(taskId: string): Promise<DownloadTaskListResult> {
-  ensureTauriRuntime()
-
-  return invoke<DownloadTaskListResult>('resume_download_task', { taskId })
+  return tauriInvoke<DownloadTaskListResult>('resume_download_task', { taskId })
 }
 
 export async function removeDownloadTask(taskId: string): Promise<DownloadTaskListResult> {
-  ensureTauriRuntime()
-
-  return invoke<DownloadTaskListResult>('remove_download_task', { taskId })
+  return tauriInvoke<DownloadTaskListResult>('remove_download_task', { taskId })
 }
 
 export async function openDownloadTaskDir(taskId: string): Promise<void> {
-  ensureTauriRuntime()
-
-  return invoke('open_download_task_dir', { taskId })
+  return tauriInvoke<void>('open_download_task_dir', { taskId })
 }
 
 export async function openDownloadRootDir(): Promise<void> {
-  ensureTauriRuntime()
-
-  return invoke('open_download_root_dir')
-}
-
-function ensureTauriRuntime() {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('This content needs the Tauri desktop runtime.')
-  }
+  return tauriInvoke<void>('open_download_root_dir')
 }

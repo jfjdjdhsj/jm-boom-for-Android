@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { tauriInvoke } from './tauri'
 
 export type FeedComic = {
   id: string
@@ -86,15 +86,11 @@ export type WeekItemsResult = {
 }
 
 export async function getHomeFeed(endpoint: string | null = null): Promise<HomeFeedResult> {
-  ensureTauriRuntime()
-
-  return invoke<HomeFeedResult>('get_home_feed', { endpoint })
+  return tauriInvoke<HomeFeedResult>('get_home_feed', { endpoint })
 }
 
 export async function getWeekFilters(endpoint: string | null = null): Promise<WeekFiltersResult> {
-  ensureTauriRuntime()
-
-  return invoke<WeekFiltersResult>('get_week_filters', { endpoint })
+  return tauriInvoke<WeekFiltersResult>('get_week_filters', { endpoint })
 }
 
 export async function getWeekItems({
@@ -103,9 +99,7 @@ export async function getWeekItems({
   typeId,
   endpoint = null
 }: WeekItemsParams): Promise<WeekItemsResult> {
-  ensureTauriRuntime()
-
-  return invoke<WeekItemsResult>('get_week_items', {
+  return tauriInvoke<WeekItemsResult>('get_week_items', {
     page,
     categoryId,
     typeId,
@@ -126,9 +120,7 @@ export async function getHomeSectionList({
   order = null,
   endpoint = null
 }: HomeSectionListParams): Promise<HomeSectionListResult> {
-  ensureTauriRuntime()
-
-  return invoke<HomeSectionListResult>('get_home_section_list', {
+  return tauriInvoke<HomeSectionListResult>('get_home_section_list', {
     mode,
     page,
     sectionId,
@@ -141,10 +133,4 @@ export async function getHomeSectionList({
     order,
     endpoint
   })
-}
-
-function ensureTauriRuntime() {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('This content needs the Tauri desktop runtime.')
-  }
 }

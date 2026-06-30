@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { tauriInvoke } from './tauri'
 
 export type StringMap = Record<string, unknown>
 
@@ -74,15 +74,17 @@ export async function searchComic({
     return emptySearchResult(page, extern)
   }
 
-  ensureTauriRuntime()
-
   return withTimeout(
-    invoke<SearchResultContract>('search_comics', {
-      keyword: normalizedKeyword,
-      page,
-      externPayload: extern,
-      endpoint
-    }),
+    tauriInvoke<SearchResultContract>(
+      'search_comics',
+      {
+        keyword: normalizedKeyword,
+        page,
+        externPayload: extern,
+        endpoint
+      },
+      'Search needs the Tauri desktop runtime. Start the app with the Tauri command.'
+    ),
     15000
   )
 }
@@ -111,12 +113,6 @@ function emptySearchResult(page: number, extern: StringMap | null): SearchResult
     },
     paging,
     items
-  }
-}
-
-function ensureTauriRuntime() {
-  if (!('__TAURI_INTERNALS__' in window)) {
-    throw new Error('Search needs the Tauri desktop runtime. Start the app with the Tauri command.')
   }
 }
 

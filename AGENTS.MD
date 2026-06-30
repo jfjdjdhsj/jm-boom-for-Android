@@ -133,16 +133,16 @@
 
 ### Phase 2：前端基础清理
 
-- [ ] 抽 `src/lib/api/tauri.ts`，统一 `tauriInvoke<T>()`，移除各 `src/lib/api/*.ts` 中重复的 `ensureTauriRuntime`。
-- [ ] 抽 `src/lib/query-keys.ts`，集中管理 TanStack Query key，避免缓存 key 散落。
-- [ ] 抽 `src/lib/format.ts`，统一 `formatBytes`、`formatDuration` 等格式化函数。
-- [ ] 修掉 `src/features/comic-detail/page.tsx` 中的 `any`，保持 TypeScript strict 友好。
+- [x] 抽 `src/lib/api/tauri.ts`，统一 `tauriInvoke<T>()`，移除各 `src/lib/api/*.ts` 中重复的 `ensureTauriRuntime`。
+- [x] 抽 `src/lib/query-keys.ts`，集中管理 TanStack Query key，避免缓存 key 散落。
+- [x] 抽 `src/lib/format.ts`，统一 `formatBytes`、`formatDuration` 等格式化函数。
+- [x] 修掉 `src/features/comic-detail/page.tsx` 中的 `any`，保持 TypeScript strict 友好。
 - 建议 commit msg：`refactor(frontend): centralize api helpers and shared utilities`。
 
 ### Phase 3：拆分设置页
 
 - [ ] 将 `src/routes/_app/settings.tsx` 拆到 `src/features/settings/`，路由文件仅保留 `createFileRoute` 和页面入口。
-- [ ] 按 section 拆分：版本更新、外观、API endpoint、代理、缓存、隐私模式。
+- [ ] 按 section 拆分：版本更新、外观、API endpoint、代理、缓存、隐私模式、调试诊断。
 - [ ] 抽 `SettingRow`、`SectionTitle`、endpoint 选择/测速展示等稳定组件或 hooks。
 - [ ] 保持 UI 和交互行为不变。
 - 建议 commit msg：`refactor(settings): split settings page into feature modules`。

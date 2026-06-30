@@ -58,6 +58,8 @@ import {
   openReaderCacheDir,
   type ReaderCacheStatsResult
 } from '@/lib/api/reader'
+import { formatBytes } from '@/lib/format'
+import { queryKeys } from '@/lib/query-keys'
 import { cn } from '@/lib/utils'
 import {
   FALLBACK_API_ENDPOINTS,
@@ -95,7 +97,7 @@ function SettingsPage() {
   const setHideCovers = useSettingsStore(state => state.setHideCovers)
   const reset = useSettingsStore(state => state.reset)
   const endpointDiscovery = useQuery({
-    queryKey: ['jm-api-endpoint-discovery'],
+    queryKey: queryKeys.apiEndpointDiscovery(),
     queryFn: discoverApiEndpoints,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -107,7 +109,7 @@ function SettingsPage() {
   const apiRef = useRef(api)
   const lastPreferredDiscoveryAtRef = useRef(0)
   const readerCacheStats = useQuery({
-    queryKey: ['reader-cache-stats', cacheLimitBytes],
+    queryKey: queryKeys.readerCacheStats(cacheLimitBytes),
     queryFn: () => getReaderCacheStats(cacheLimitBytes),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -117,7 +119,7 @@ function SettingsPage() {
     mutationFn: () => clearReaderCache(cacheLimitBytes),
     onSuccess: data => {
       toast.success('阅读缓存已清理')
-      queryClient.setQueryData(['reader-cache-stats', cacheLimitBytes], data)
+      queryClient.setQueryData(queryKeys.readerCacheStats(cacheLimitBytes), data)
     },
     onError: error => {
       toast.error(error instanceof Error ? error.message : String(error))
@@ -130,7 +132,7 @@ function SettingsPage() {
     }
   })
   const diagnosticsInfo = useQuery({
-    queryKey: ['diagnostics-info'],
+    queryKey: queryKeys.diagnosticsInfo(),
     queryFn: getDiagnosticsInfo,
     staleTime: 30 * 1000,
     refetchOnWindowFocus: false
@@ -144,7 +146,7 @@ function SettingsPage() {
   const setDiagnosticsDebug = useMutation({
     mutationFn: setDiagnosticsDebugLogging,
     onSuccess: data => {
-      queryClient.setQueryData(['diagnostics-info'], data)
+      queryClient.setQueryData(queryKeys.diagnosticsInfo(), data)
       toast.success(data.debugLoggingEnabled ? '性能调试日志已开启' : '性能调试日志已关闭')
     },
     onError: error => {
@@ -152,7 +154,7 @@ function SettingsPage() {
     }
   })
   const appVersion = useQuery({
-    queryKey: ['app-version'],
+    queryKey: queryKeys.appVersion(),
     queryFn: getCurrentAppVersion,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -790,23 +792,6 @@ function GitHubMark({ className }: { className?: string }) {
 
 function formatCacheLimit(limitMb: number) {
   return limitMb >= 1024 ? `${limitMb / 1024} GB` : `${limitMb} MB`
-}
-
-function formatBytes(bytes: number) {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return '0 B'
-  }
-
-  const units = ['B', 'KB', 'MB', 'GB']
-  let value = bytes
-  let unitIndex = 0
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024
-    unitIndex += 1
-  }
-
-  return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`
 }
 
 function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {

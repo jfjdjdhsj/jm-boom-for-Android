@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { getSignInData, signIn, type UserProfile } from '@/lib/api/user'
+import { queryKeys } from '@/lib/query-keys'
 
 import { findTodayRecord } from './sign-in-utils'
 
@@ -17,7 +18,7 @@ function signInSuccessMessage(message: string) {
 export function useMeSignIn({ user, endpoint }: UseMeSignInParams) {
   const userId = user?.id
   const signInQuery = useQuery({
-    queryKey: ['jm-sign-in-data', endpoint, userId],
+    queryKey: queryKeys.signInData(endpoint, userId),
     queryFn: async () => {
       if (!user) {
         throw new Error('请先登录')
