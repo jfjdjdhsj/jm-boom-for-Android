@@ -145,7 +145,7 @@ fn write_log(level: LogLevel, message: String) {
     let Some(state) = DIAGNOSTICS.get() else {
         return;
     };
-    let Ok(mut state) = state.lock() else {
+    let Ok(state) = state.lock() else {
         return;
     };
 
@@ -160,10 +160,10 @@ fn write_log(level: LogLevel, message: String) {
         level.as_str(),
         message
     );
-    let _ = write_log_line(&mut state, line.as_bytes());
+    let _ = write_log_line(&state, line.as_bytes());
 }
 
-fn write_log_line(state: &mut DiagnosticsState, line: &[u8]) -> Result<(), std::io::Error> {
+fn write_log_line(state: &DiagnosticsState, line: &[u8]) -> Result<(), std::io::Error> {
     fs::create_dir_all(&state.log_dir)?;
     rotate_logs_if_needed(&state.log_dir)?;
     let log_path = state.log_dir.join(LOG_FILE_NAME);
