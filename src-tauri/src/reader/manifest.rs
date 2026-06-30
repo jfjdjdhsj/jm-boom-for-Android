@@ -1,7 +1,7 @@
 use super::types::{ReaderManifest, ReaderPage};
 use crate::api::{
-    build_http_client, current_jwt_token, resolve_api_endpoint, resolve_cached_img_host, ApiError,
-    ApiErrorKind, ApiResult,
+    build_http_client, current_jwt_token, lossy_string_from_scalar, resolve_api_endpoint,
+    resolve_cached_img_host, ApiError, ApiErrorKind, ApiResult,
 };
 use aes::Aes256;
 use base64::prelude::{Engine as _, BASE64_STANDARD};
@@ -19,7 +19,7 @@ static MANIFEST_CACHE: OnceLock<Mutex<HashMap<String, ReaderManifest>>> = OnceLo
 
 #[derive(Debug, Deserialize)]
 struct ReaderChapterPayload {
-    #[serde(default, deserialize_with = "deserialize_string_from_any")]
+    #[serde(default, deserialize_with = "lossy_string_from_scalar")]
     id: String,
     #[serde(default)]
     images: Vec<String>,
@@ -346,19 +346,4 @@ fn decrypt_base64_with_key(data: &str, key: &str) -> Result<String, String> {
 
 fn md5_hex(input: &str) -> String {
     format!("{:x}", md5::compute(input))
-}
-
-fn deserialize_string_from_any<'de, D>(deserializer: D) -> Result<String, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let value = serde_json::Value::deserialize(deserializer)?;
-
-    match value {
-        serde_json::Value::String(value) => Ok(value),
-        serde_json::Value::Number(value) => Ok(value.to_string()),
-        serde_json::Value::Bool(value) => Ok(value.to_string()),
-        serde_json::Value::Null => Ok(String::new()),
-        _ => Err(serde::de::Error::custom("expected a scalar value")),
-    }
 }

@@ -57,9 +57,12 @@
 - 全局用户状态在 `src/stores/user-store.ts`。
 - 设置状态在 `src/stores/settings-store.ts`，使用 Zustand persist，当前包含 API endpoint、阅读缓存上限、代理和封面隐私模式。
 - 阅读历史在 `src/stores/reading-history-store.ts`，persist key 是 `jm-boom-reading-history`。
-- Rust API 已拆分：
-  - `src-tauri/src/api.rs`：远程设置、搜索、首页、列表、排行、收藏、详情、评论、登录、签到、代理等普通接口。
-  - `src-tauri/src/reader.rs`：阅读 manifest、图片下载、解扰、缓存、reader cache 管理。
+- 设置页路由 `src/routes/_app/settings.tsx` 仅保留入口，页面实现拆在 `src/features/settings/`。
+- 下载页路由 `src/routes/_app/downloads.tsx` 仅保留入口，页面实现拆在 `src/features/downloads/`。
+- Rust 后端模块已拆分：
+  - `src-tauri/src/api.rs` + `src-tauri/src/api/*`：远程设置、搜索、首页、列表、排行、收藏、详情、评论、登录、签到、代理等普通接口。
+  - `src-tauri/src/reader.rs` + `src-tauri/src/reader/*`：阅读 manifest、图片下载、解扰、缓存、reader cache 管理。
+  - `src-tauri/src/download.rs` + `src-tauri/src/download/*`：下载任务状态机、持久化、路径规则和进度估算。
   - `src-tauri/src/updater.rs`：应用更新检查和安装。
   - `src-tauri/src/lib.rs`：Tauri command 包装和 invoke handler 注册。
 
@@ -73,12 +76,13 @@
 - 详情页：`src/routes/_app/comic/$comicId.tsx`，展示详情、章节、相关推荐、评论 Drawer，支持收藏切换。
 - 历史观看：`src/routes/_app/history.tsx`，以作品 `comicId` 为唯一键覆盖历史，`chapterId` 保存当前章节/read id；点击历史进入 `/reader/$comicId` 并带 `pageIndex` 恢复进度。
 - 阅读页：`src/routes/reader/$comicId.tsx` + `src/features/reader/*`，`$comicId` 语义是 read/chapter id，作品 id 来自 search `albumId`。
-- 设置页：`src/routes/_app/settings.tsx`，动态发现 API endpoint，支持 HTTP/SOCKS5 代理、主题、封面隐私、缓存上限、缓存管理和应用更新。
+- 设置页：`src/routes/_app/settings.tsx` + `src/features/settings/*`，动态发现 API endpoint，支持 HTTP/SOCKS5 代理、主题、封面隐私、缓存上限、缓存管理、诊断日志和应用更新。
 - 个人中心：`src/routes/_app/me.tsx`，登录态来自 Zustand，支持签到数据和签到操作。
+- 下载页：`src/routes/_app/downloads.tsx` + `src/features/downloads/*`，展示下载任务、筛选状态、暂停/恢复/取消/删除任务和打开目录。
 
 ## Rust / Tauri API 要点
 
-- 主要 commands：`get_remote_setting`、`discover_api_endpoints`、`search_comics`、`get_home_feed`、`get_home_section_list`、`get_week_filters`、`get_week_items`、`get_comic_detail`、`toggle_comic_favorite`、`get_favorite_comics`、`get_comic_comments`、`login`、`get_sign_in_data`、`sign_in`、`clear_session`、`configure_network_proxy`、`get_reader_cache_stats`、`clear_reader_cache`、`open_reader_cache_dir`、`get_comic_read_manifest`、`get_comic_read_page`、`check_app_update`、`install_app_update`。
+- 主要 commands：`get_remote_setting`、`discover_api_endpoints`、`search_comics`、`get_home_feed`、`get_home_section_list`、`get_week_filters`、`get_week_items`、`get_comic_detail`、`toggle_comic_favorite`、`get_favorite_comics`、`get_comic_comments`、`login`、`get_sign_in_data`、`sign_in`、`clear_session`、`configure_network_proxy`、`get_reader_cache_stats`、`clear_reader_cache`、`open_reader_cache_dir`、`get_comic_read_manifest`、`get_comic_read_page`、`enqueue_comic_download`、`list_download_tasks`、`cancel_download_task`、`pause_download_task`、`resume_download_task`、`remove_download_task`、`open_download_task_dir`、`open_download_root_dir`、`check_app_update`、`install_app_update`。
 - 移动端 API `tokenparam` 版本对齐 Breeze 插件为 `2.0.20`。
 - API endpoint 动态发现从 `newsvr-2025.txt` 解密 host 池，合并本地 fallback 后测速；业务请求只规范化 http/https endpoint，空 endpoint 回退到 `https://www.cdnhjk.net`。
 - Rust 侧支持全局代理配置，`configure_network_proxy` 会重建共享 reqwest client；HTTP/SOCKS5 依赖 reqwest `socks` feature。
@@ -103,8 +107,9 @@
 - 非扰图直接缓存原始 bytes，不再整图解码；冷缓存返回宽高 `0/0`，前端当前不依赖宽高排版。
 - 扰图缓存输出 lossy WebP，当前使用 `webp` crate / libwebp，质量 `75.0`，缓存文件为 `.webp`。
 - 扰图解码先 `image::load_from_memory`，转 RGB 后按 raw row copy 重排；主要成本通常在 `load_ms` 和 `encode_ms`。
-- 前端 `useReaderPages` 当前页请求传 `requestOrigin: 'visible'`；相邻预取页传 `requestOrigin: 'prefetch'`。
-- 当前预取在前端用 `queryClient.prefetchQuery` 串行执行，半径固定为 `BREEZE_ROW_PREFETCH_RADIUS = 1`，顺序为 `+1, -1`。
+- 前端阅读 hooks 已拆分：`use-reader-pages.ts` 负责组装，导航、manifest query、page query、prefetch 分别在独立 hook 中。
+- 当前页请求传 `requestOrigin: 'visible'`；相邻预取页传 `requestOrigin: 'prefetch'`。
+- 预取在 `use-reader-prefetch.ts` 中用 `queryClient.prefetchQuery` 串行执行，半径固定为 `BREEZE_ROW_PREFETCH_RADIUS = 1`，顺序为 `+1, -1`。
 - 预取在当前页 ready 后触发；同一窗口用 `prefetchKeyRef` 去重。
 - Rust 侧有同缓存路径 single-flight 锁，避免同一页重复冷处理。
 - 缓存写入使用同目录 `.tmp` 文件，完成后 rename 为正式缓存文件；缓存统计和清理跳过 `.tmp`，避免并发读取半写文件。
@@ -173,9 +178,9 @@
 
 ### Phase 7：收尾与架构文档同步
 
-- [ ] 清理重复 helper、过时 fallback、无用兼容写法；不因 lint 扩大无关改动。
-- [ ] 后续排版方向参考 Breeze：单页 `contain` 当前已接近；滚动模式可学习图片尺寸缓存；双页/RTL/LTR 支持尚未实现。
-- [ ] 更新本文件中已经变化的项目结构和实现说明。
+- [x] 清理重复 helper、过时 fallback、无用兼容写法；不因 lint 扩大无关改动。
+- [x] 后续排版方向参考 Breeze：单页 `contain` 当前已接近；滚动模式可学习图片尺寸缓存；双页/RTL/LTR 支持尚未实现。
+- [x] 更新本文件中已经变化的项目结构和实现说明。
 - 建议 commit msg：`chore: document refactored module boundaries`。
 
 ## 注意事项
