@@ -72,6 +72,7 @@ function WeeklyPage() {
     if (nextCategoryId !== search.categoryId || nextTypeId !== search.typeId) {
       void navigate({
         replace: true,
+        resetScroll: false,
         search: {
           ...search,
           page: 1,
@@ -113,6 +114,7 @@ function WeeklyPage() {
   function updateTypeId(typeId: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -124,6 +126,7 @@ function WeeklyPage() {
   function updateCategoryId(categoryId: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -135,6 +138,7 @@ function WeeklyPage() {
   function updatePage(page: number) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page,

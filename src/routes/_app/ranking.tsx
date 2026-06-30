@@ -67,6 +67,7 @@ function RankingPage() {
   function updateCategory(value: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -78,6 +79,7 @@ function RankingPage() {
   function updateOrder(value: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -89,6 +91,7 @@ function RankingPage() {
   function updatePage(page: number) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page

@@ -95,6 +95,7 @@ function SearchPage() {
   function updateSortBy(value: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         keyword: search.keyword,
         page: 1,
@@ -106,6 +107,7 @@ function SearchPage() {
   function updatePage(page: number) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         keyword: search.keyword,
         page,

@@ -115,6 +115,7 @@ function HomeSectionListPage() {
   function updateCategory(value: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -126,6 +127,7 @@ function HomeSectionListPage() {
   function updateWeek(value: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -137,6 +139,7 @@ function HomeSectionListPage() {
   function updateOrder(value: string) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page: 1,
@@ -148,6 +151,7 @@ function HomeSectionListPage() {
   function updatePage(page: number) {
     void navigate({
       replace: true,
+      resetScroll: false,
       search: {
         ...search,
         page
