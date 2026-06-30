@@ -281,17 +281,6 @@ export function SettingsPage() {
 
             <Separator />
 
-            <AccountSection
-              savedLoginConfig={savedLoginConfig.data}
-              isLoading={savedLoginConfig.isLoading}
-              isSaving={saveAccount.isPending}
-              isSettingAutoLogin={setAccountAutoLogin.isPending}
-              onAutoLoginChange={autoLogin => setAccountAutoLogin.mutate(autoLogin)}
-              onCredentialsChange={input => saveAccount.mutate(input)}
-            />
-
-            <Separator />
-
             <ProxySection
               proxyMode={proxyMode}
               proxyHost={proxyHost}
@@ -315,6 +304,21 @@ export function SettingsPage() {
 
             <Separator />
 
+            <PrivacySection hideCovers={hideCovers} onHideCoversChange={setHideCovers} />
+
+            <Separator />
+
+            <AccountSection
+              savedLoginConfig={savedLoginConfig.data}
+              isLoading={savedLoginConfig.isLoading}
+              isSaving={saveAccount.isPending}
+              isSettingAutoLogin={setAccountAutoLogin.isPending}
+              onAutoLoginChange={autoLogin => setAccountAutoLogin.mutate(autoLogin)}
+              onCredentialsChange={input => saveAccount.mutate(input)}
+            />
+
+            <Separator />
+
             <DiagnosticsSection
               diagnosticsInfo={diagnosticsInfo}
               isOpeningDiagnosticsDir={openDiagnosticsDir.isPending}
@@ -322,10 +326,6 @@ export function SettingsPage() {
               onOpenDiagnosticsDir={() => openDiagnosticsDir.mutate()}
               onDebugLoggingChange={enabled => setDiagnosticsDebug.mutate(enabled)}
             />
-
-            <Separator />
-
-            <PrivacySection hideCovers={hideCovers} onHideCoversChange={setHideCovers} />
           </CardContent>
         </Card>
       </div>
