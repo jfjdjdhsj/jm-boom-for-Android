@@ -65,8 +65,8 @@ function MePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content flex min-h-dvh max-w-6xl flex-col">
         <PageHeader title="个人中心" desc="展示用户信息">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" disabled>
@@ -87,11 +87,13 @@ function MePage() {
             <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="mt-4 flex flex-col items-center gap-2">
-            <h2 className="truncate text-4xl font-bold">{user.username}</h2>
+            <h2 className="max-w-full truncate text-center text-3xl font-bold sm:text-4xl">
+              {user.username}
+            </h2>
             <p className="text-sm text-muted-foreground">UID {user.id}</p>
           </div>
 
-          <div className="mt-12 flex gap-16">
+          <div className="mt-12 grid w-full max-w-3xl grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-8 lg:gap-16">
             {[
               {
                 label: '经验',
@@ -110,9 +112,9 @@ function MePage() {
                 value: `${user.currentCollectCount}/${user.maxCollectCount}`
               }
             ].map(item => (
-              <div key={item.label} className="flex flex-col items-center gap-2">
+              <div key={item.label} className="flex min-w-0 flex-col items-center gap-2">
                 <div className="text-sm text-muted-foreground">{item.label}</div>
-                <div className="truncate text-xl font-bold">{item.value}</div>
+                <div className="max-w-full truncate text-xl font-bold">{item.value}</div>
               </div>
             ))}
           </div>

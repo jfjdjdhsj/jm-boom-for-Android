@@ -2,7 +2,11 @@ use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+#[cfg(target_os = "android")]
+use crate::external_paths::android_external_dir;
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::prelude::*;
@@ -31,10 +35,7 @@ pub fn init(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
-    let log_dir = app
-        .path()
-        .app_log_dir()
-        .map_err(|error| format!("Failed to resolve log directory: {error}"))?;
+    let log_dir = diagnostics_log_dir(app)?;
     fs::create_dir_all(&log_dir)
         .map_err(|error| format!("Failed to create log directory: {error}"))?;
 
@@ -123,6 +124,18 @@ fn diagnostics_info(state: &DiagnosticsState) -> DiagnosticsInfo {
         log_dir: state.log_dir.to_string_lossy().to_string(),
         debug_logging_enabled: state.debug_logging_enabled,
     }
+}
+
+#[cfg(target_os = "android")]
+fn diagnostics_log_dir(_app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(android_external_dir("logs"))
+}
+
+#[cfg(not(target_os = "android"))]
+fn diagnostics_log_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_log_dir()
+        .map_err(|error| format!("Failed to resolve log directory: {error}"))
 }
 
 fn log_filter(debug_logging_enabled: bool) -> EnvFilter {

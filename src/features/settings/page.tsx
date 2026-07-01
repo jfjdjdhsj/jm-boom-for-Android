@@ -18,7 +18,7 @@ import {
   openDiagnosticsLogDir,
   setDiagnosticsDebugLogging
 } from '@/lib/api/setting'
-import { clearReaderCache, getReaderCacheStats, openReaderCacheDir } from '@/lib/api/reader'
+import { clearReaderCache, getReaderCacheStats } from '@/lib/api/reader'
 import { getSavedLoginConfig, saveLoginCredentials, setLoginAutoLogin } from '@/lib/api/user'
 import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
@@ -108,12 +108,6 @@ export function SettingsPage() {
         queryClient.setQueryData(queryKeys.savedLoginConfig(), data)
       }
     },
-    onError: error => {
-      toast.error(error instanceof Error ? error.message : String(error))
-    }
-  })
-  const openCacheDir = useMutation({
-    mutationFn: openReaderCacheDir,
     onError: error => {
       toast.error(error instanceof Error ? error.message : String(error))
     }
@@ -233,8 +227,8 @@ export function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-5xl space-y-8 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content max-w-5xl space-y-8">
         <PageHeader title="设置" desc="调整 APP 配置和内容显示偏好">
           <Button variant="outline" size="sm" onClick={resetSettings} className="text-xs">
             <RotateCcwIcon className="size-4" />
@@ -289,10 +283,8 @@ export function SettingsPage() {
             <CacheSection
               readerCacheLimitMb={readerCacheLimitMb}
               stats={readerCacheStats}
-              isOpeningCacheDir={openCacheDir.isPending}
               isClearingCache={clearCache.isPending}
               onCacheLimitChange={setReaderCacheLimitMb}
-              onOpenCacheDir={() => openCacheDir.mutate()}
               onClearCache={() => clearCache.mutate()}
             />
 

@@ -43,8 +43,8 @@ export function ComicDetailPage({ comicId }: { comicId: string }) {
   })
 
   return (
-    <main className="min-h-screen bg-background px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] text-foreground sm:px-6 md:p-[32px_32px_16px_96px]">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <main className="app-page">
+      <div className="app-page-content max-w-7xl space-y-8">
         <PageBackButton />
 
         {detail.isLoading ? (

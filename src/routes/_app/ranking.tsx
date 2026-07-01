@@ -100,8 +100,8 @@ function RankingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content max-w-6xl space-y-6">
         <PageBackButton />
         <FeedHeader
           title="排行榜"
@@ -110,9 +110,9 @@ function RankingPage() {
           onRefresh={() => query.refetch()}
         />
 
-        <div className="mb-4 flex items-center justify-end gap-3">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Select value={search.order} onValueChange={updateOrder}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full sm:w-fit">
               <ListFilterIcon className="size-4 text-muted-foreground" />
               <SelectValue placeholder="选择排序" />
             </SelectTrigger>
@@ -128,7 +128,7 @@ function RankingPage() {
           </Select>
 
           <Select value={search.category} onValueChange={updateCategory}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full sm:w-fit">
               <BarChart3Icon className="size-4 text-muted-foreground" />
               <SelectValue placeholder="选择分类" />
             </SelectTrigger>

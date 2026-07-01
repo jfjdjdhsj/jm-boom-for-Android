@@ -25,8 +25,8 @@ export function DownloadsPage() {
   } = useDownloadTasks()
 
   return (
-    <main className="min-h-screen bg-background px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] text-foreground sm:px-6 md:p-[32px_32px_16px_96px]">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <main className="app-page">
+      <div className="app-page-content max-w-6xl space-y-6">
         <PageHeader title="下载" desc="查看下载进度、剩余时间和已完成文件目录">
           <Button
             variant="outline"
@@ -39,18 +39,20 @@ export function DownloadsPage() {
           </Button>
         </PageHeader>
 
-        <Tabs value={filter} onValueChange={value => setFilter(value as DownloadFilter)}>
-          <TabsList>
-            {DOWNLOAD_FILTERS.map(item => (
-              <TabsTrigger key={item.value} value={item.value} className="min-w-20">
-                {item.label}
-                <span className="ml-1 text-muted-foreground tabular-nums">
-                  {filterCounts[item.value]}
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div className="min-w-0 overflow-x-auto pb-1">
+          <Tabs value={filter} onValueChange={value => setFilter(value as DownloadFilter)}>
+            <TabsList className="min-w-max">
+              {DOWNLOAD_FILTERS.map(item => (
+                <TabsTrigger key={item.value} value={item.value} className="min-w-20">
+                  {item.label}
+                  <span className="ml-1 text-muted-foreground tabular-nums">
+                    {filterCounts[item.value]}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
         {tasks.isLoading ? (
           <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">

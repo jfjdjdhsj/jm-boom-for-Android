@@ -22,6 +22,10 @@ declare module '@tanstack/react-router' {
 
 const root = document.getElementById('root') as HTMLElement
 
+if (typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)) {
+  document.documentElement.dataset.platform = 'android'
+}
+
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <Providers>

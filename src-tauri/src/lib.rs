@@ -1,6 +1,7 @@
 mod api;
 mod diagnostics;
 mod download;
+mod external_paths;
 mod plugin_codec;
 mod reader;
 mod storage;

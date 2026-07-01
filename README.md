@@ -97,6 +97,24 @@ git tag v0.0.1
 git push origin v0.0.1
 ```
 
+### Android 布局适配
+
+- Android WebView 使用 `viewport-fit=cover`，页面顶部和底部通过安全区变量避开状态栏与手势导航栏。
+- 手机端保留底部导航；平板竖屏和中等宽度优先沿用底部导航与三列内容网格；大平板横屏和桌面宽度切换为左侧浮动导航。
+- 阅读器顶部栏、底部控制栏和章节抽屉会避开系统安全区。手机端阅读器底栏将页码与阅读设置分区显示，避免 `1 / 32` 这类页码与按钮重叠。
+
+### Android 外部存储
+
+- Android 构建会在启动时请求“所有文件访问权限”，用户需要在系统设置页手动允许。
+- Android 下载文件保存到 `/storage/emulated/0/jj-boom/downloads`。
+- Android 运行日志保存到 `/storage/emulated/0/jj-boom/logs/jm-boom.log`。
+- 如果 `/storage/emulated/0/jj-boom` 已存在，应用会直接复用；不存在时会在权限允许后自动创建 `downloads` 和 `logs` 子目录。
+- 桌面端仍使用系统分配的应用数据目录和日志目录。
+
+### 缓存管理
+
+- 设置页缓存区只显示当前缓存大小、缓存上限和清理入口，不显示内部缓存路径和打开文件夹按钮。
+
 ## 环境依赖
 
 - Bun：用于安装前端依赖、运行 Vite 和 Tauri CLI

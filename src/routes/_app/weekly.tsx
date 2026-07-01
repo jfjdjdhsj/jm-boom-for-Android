@@ -149,8 +149,8 @@ function WeeklyPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content max-w-6xl space-y-6">
         <PageBackButton />
         <FeedHeader
           title="每周推荐"
@@ -167,10 +167,14 @@ function WeeklyPage() {
           />
         ) : (
           <>
-            <div className="mb-4 flex justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               {types.length > 0 ? (
-                <Tabs value={selectedTypeId} onValueChange={updateTypeId}>
-                  <TabsList>
+                <Tabs
+                  value={selectedTypeId}
+                  onValueChange={updateTypeId}
+                  className="min-w-0 overflow-x-auto pb-1"
+                >
+                  <TabsList className="min-w-max">
                     {types.map(type => (
                       <TabsTrigger key={type.id} value={type.id} className="min-w-16">
                         {type.title}
@@ -184,7 +188,7 @@ function WeeklyPage() {
 
               {categories.length > 0 ? (
                 <Select value={selectedCategoryId} onValueChange={updateCategoryId}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full md:w-fit">
                     <CalendarDaysIcon className="size-4 text-muted-foreground" />
                     <SelectValue placeholder="选择期数" />
                   </SelectTrigger>
@@ -199,7 +203,7 @@ function WeeklyPage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="h-9 w-full animate-pulse rounded-md bg-muted lg:w-[320px]" />
+                <div className="h-9 w-full animate-pulse rounded-md bg-muted md:w-[320px]" />
               )}
             </div>
 

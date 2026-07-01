@@ -160,8 +160,8 @@ function HomeSectionListPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content max-w-6xl space-y-6">
         <PageBackButton />
         <FeedHeader
           title={title}
@@ -228,7 +228,7 @@ function SectionFilters({
 }) {
   if (mode === 'weekly') {
     return (
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <FilterSelect
           value={week}
           options={WEEK_OPTIONS}
@@ -249,7 +249,7 @@ function SectionFilters({
     const categoryOptions = rankingCategoryOptions(rankTag)
 
     return (
-      <div className="flex justify-end gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <FilterSelect
           value={order}
           options={RANKING_ORDER_OPTIONS}
@@ -284,7 +284,7 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger>
+      <SelectTrigger className="w-full sm:w-fit">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

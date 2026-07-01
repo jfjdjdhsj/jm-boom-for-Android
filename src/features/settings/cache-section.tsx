@@ -1,8 +1,7 @@
 import type { UseQueryResult } from '@tanstack/react-query'
-import { FolderOpenIcon, HardDriveIcon, LoaderCircleIcon, Trash2Icon } from 'lucide-react'
+import { HardDriveIcon, LoaderCircleIcon, Trash2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -19,18 +18,14 @@ import { SettingRow, SettingsSection } from './shared'
 export function CacheSection({
   readerCacheLimitMb,
   stats,
-  isOpeningCacheDir,
   isClearingCache,
   onCacheLimitChange,
-  onOpenCacheDir,
   onClearCache
 }: {
   readerCacheLimitMb: number
   stats: UseQueryResult<ReaderCacheStatsResult, Error>
-  isOpeningCacheDir: boolean
   isClearingCache: boolean
   onCacheLimitChange: (limitMb: number) => void
-  onOpenCacheDir: () => void
   onClearCache: () => void
 }) {
   return (
@@ -56,24 +51,6 @@ export function CacheSection({
             </SelectGroup>
           </SelectContent>
         </Select>
-      </SettingRow>
-      <SettingRow title="缓存路径" description="缓存在应用目录中的路径">
-        <div className="flex items-center gap-2">
-          <Input disabled value={cacheDirValue(stats)} title={stats.data?.cacheDir ?? ''} />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            disabled={isOpeningCacheDir}
-            onClick={onOpenCacheDir}
-          >
-            {isOpeningCacheDir ? (
-              <LoaderCircleIcon className="size-4 animate-spin" />
-            ) : (
-              <FolderOpenIcon className="size-4" />
-            )}
-          </Button>
-        </div>
       </SettingRow>
       <SettingRow title="清理缓存" description="删除已解码的图片缓存">
         <Button
@@ -114,18 +91,6 @@ function CacheSize({ stats }: { stats: UseQueryResult<ReaderCacheStatsResult, Er
       <div className="mt-1 text-xs text-muted-foreground">{stats.data.fileCount} 个文件</div>
     </div>
   )
-}
-
-function cacheDirValue(stats: UseQueryResult<ReaderCacheStatsResult, Error>) {
-  if (stats.isLoading) {
-    return '正在读取路径'
-  }
-
-  if (stats.isError) {
-    return '读取失败'
-  }
-
-  return stats.data?.cacheDir ?? ''
 }
 
 function formatCacheLimit(limitMb: number) {

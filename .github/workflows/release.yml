@@ -165,6 +165,11 @@ jobs:
             CI=true bun run tauri android init
           fi
 
+      - name: Configure Android external storage
+        run: |
+          set -euxo pipefail
+          bash scripts/configure-android-external-storage.sh
+
       - name: Build split APKs
         run: |
           set -euxo pipefail

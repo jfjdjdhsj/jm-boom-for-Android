@@ -26,12 +26,12 @@ export function FloatingNav({ items, activeId, onItemClick }: FloatingNavProps) 
   if (items.length === 0) return null
 
   return (
-    <nav className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-50 rounded-2xl border border-border/70 bg-background/85 p-1 shadow-lg backdrop-blur md:top-1/2 md:right-auto md:bottom-auto md:left-6 md:w-auto md:-translate-y-1/2 md:rounded-full md:bg-background/40 md:shadow-none">
-      <ul className="flex items-center gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+    <nav className="fixed inset-x-3 bottom-[calc(var(--app-safe-bottom)+0.75rem)] z-50 rounded-2xl border border-border/70 bg-background/85 p-1 shadow-lg backdrop-blur lg:top-1/2 lg:right-auto lg:bottom-auto lg:left-[calc(var(--app-safe-left)+1.5rem)] lg:w-auto lg:-translate-y-1/2 lg:rounded-full lg:bg-background/40 lg:shadow-none">
+      <ul className="flex items-center gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
         {items.map(item => (
           <Fragment key={item.id}>
             {item.separatorBefore ? (
-              <li aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border/70 md:my-1 md:h-px md:w-6" />
+              <li aria-hidden="true" className="mx-1 h-6 w-px shrink-0 bg-border/70 lg:my-1 lg:h-px lg:w-6" />
             ) : null}
             <NavItem item={item} isActive={item.id === activeId} onItemClick={onItemClick} />
           </Fragment>

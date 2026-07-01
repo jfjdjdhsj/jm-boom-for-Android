@@ -28,7 +28,7 @@ export function ReaderTopBar({
   return (
     <header
       className={cn(
-        'absolute inset-x-0 top-0 z-30 grid h-16 grid-cols-[120px_minmax(0,1fr)_120px] items-center bg-neutral-950/85 px-4 backdrop-blur transition-all duration-200',
+        'absolute inset-x-0 top-0 z-30 grid h-[calc(var(--app-safe-top)+4rem)] grid-cols-[88px_minmax(0,1fr)_44px] items-center bg-neutral-950/85 px-3 pt-[var(--app-safe-top)] backdrop-blur transition-all duration-200 sm:grid-cols-[120px_minmax(0,1fr)_120px] sm:px-4',
         visible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-3 opacity-0'
       )}
       onClick={event => event.stopPropagation()}
@@ -93,7 +93,7 @@ export function ReaderBottomBar({
   return (
     <footer
       className={cn(
-        'absolute bottom-8 left-1/2 z-30 flex w-[480px] max-w-[calc(100vw-48px)] -translate-x-1/2 flex-col gap-2 rounded-xl border border-white/10 bg-neutral-950/85 p-3 text-neutral-50 shadow-lg backdrop-blur transition-all duration-200',
+        'reader-bottom-bar -translate-x-1/2 flex-col gap-2 rounded-xl border border-white/10 bg-neutral-950/85 p-3 text-neutral-50 shadow-lg backdrop-blur transition-all duration-200',
         visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'
       )}
       onClick={event => event.stopPropagation()}

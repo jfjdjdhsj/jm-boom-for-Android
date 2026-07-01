@@ -62,7 +62,7 @@ export function ReaderChapterDrawer({
             variant="ghost"
             size="icon-sm"
             aria-label="关闭章节目录"
-            className="absolute top-4 right-4 text-neutral-300 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50"
+            className="absolute top-[calc(var(--app-safe-top)+1rem)] right-4 text-neutral-300 hover:bg-white/10 hover:text-neutral-50 focus-visible:text-neutral-50"
             onClick={() => onOpenChange(false)}
           >
             <XIcon className="size-4" />

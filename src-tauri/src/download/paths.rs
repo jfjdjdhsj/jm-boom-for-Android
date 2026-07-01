@@ -1,10 +1,21 @@
 use super::types::{DownloadChapterRequest, DownloadTask};
 use crate::api::{ApiError, ApiErrorKind, ApiResult};
+#[cfg(target_os = "android")]
+use crate::external_paths::android_external_dir;
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
 
 pub(crate) fn download_files_root(app: &AppHandle) -> ApiResult<PathBuf> {
+    #[cfg(target_os = "android")]
+    {
+        let _ = app;
+        return Ok(android_external_dir("downloads"));
+    }
+
+    #[cfg(not(target_os = "android"))]
     app.path()
         .app_data_dir()
         .map(|path| path.join("downloads").join("file"))

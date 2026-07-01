@@ -20,7 +20,7 @@ export function BackTop() {
       variant="outline"
       size="icon"
       aria-label="回到顶部"
-      className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-50 bg-background/80 backdrop-blur md:right-8 md:bottom-8"
+      className="fixed right-4 bottom-[calc(var(--app-safe-bottom)+5.5rem)] z-50 bg-background/80 backdrop-blur lg:right-8 lg:bottom-8"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
     >
       <ChevronUpIcon className="size-4" />

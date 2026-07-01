@@ -33,8 +33,8 @@ function HistoryPage() {
   )
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content max-w-6xl space-y-6">
         <PageHeader title="历史观看" desc="本地保存的阅读进度">
           <ClearHistoryDialog
             disabled={sortedItems.length === 0}

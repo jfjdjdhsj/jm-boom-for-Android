@@ -64,8 +64,8 @@ function FavoritesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
+    <main className="app-page">
+      <div className="app-page-content max-w-6xl space-y-6">
         <FeedHeader
           title="收藏"
           description="云端收藏的漫画作品"
@@ -73,9 +73,9 @@ function FavoritesPage() {
           onRefresh={() => favorites.refetch()}
         />
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Select value={folderId} onValueChange={changeFolder}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full sm:w-fit">
               <BookmarkIcon className="size-4 text-muted-foreground" />
               <SelectValue placeholder="选择收藏夹" />
             </SelectTrigger>
