@@ -75,10 +75,10 @@ JM-Boom-架构-v版本号.apk
 
 当前 workflow 会生成：
 
-- `JM-Boom-arm64-v8a-v0.0.1.apk`
-- `JM-Boom-armeabi-v7a-v0.0.1.apk`
-- `JM-Boom-x86_64-v0.0.1.apk`
-- `JM-Boom-x86-v0.0.1.apk`
+- `JM-Boom-arm64-v8a-v0.0.2.apk`
+- `JM-Boom-armeabi-v7a-v0.0.2.apk`
+- `JM-Boom-x86_64-v0.0.2.apk`
+- `JM-Boom-x86-v0.0.2.apk`
 
 ### GitHub Actions Secrets
 
@@ -93,8 +93,8 @@ JM-Boom-架构-v版本号.apk
 推送 tag 或手动运行 `Android Release` workflow 均可触发发布。版本号需要与 `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 和 `src-tauri/Cargo.lock` 保持一致。
 
 ```bash
-git tag v0.0.1
-git push origin v0.0.1
+git tag v0.0.2
+git push origin v0.0.2
 ```
 
 ### Android 布局适配
