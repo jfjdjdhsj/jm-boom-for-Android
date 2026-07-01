@@ -127,7 +127,7 @@ jobs:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android SDK packages
         run: |
@@ -187,14 +187,12 @@ jobs:
           apksigner="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/apksigner"
           zipalign="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/zipalign"
 
-          shopt -s nullglob
-          for apk in $(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | sort); do
-            file_name="$(basename "$apk")"
-            case "$file_name" in
-              *arm64-v8a*) arch="arm64-v8a" ;;
-              *armeabi-v7a*) arch="armeabi-v7a" ;;
-              *x86_64*) arch="x86_64" ;;
-              *x86*) arch="x86" ;;
+          while IFS= read -r apk; do
+            case "$apk" in
+              */arm64/*|*arm64-v8a*|*aarch64*) arch="arm64-v8a" ;;
+              */arm/*|*armeabi-v7a*|*armv7*) arch="armeabi-v7a" ;;
+              */x86_64/*|*x86_64*) arch="x86_64" ;;
+              */x86/*|*x86*) arch="x86" ;;
               *) continue ;;
             esac
 
@@ -209,7 +207,7 @@ jobs:
               --out "$dest" \
               "$aligned"
             "$apksigner" verify --verbose "$dest"
-          done
+          done < <(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | sort)
 
           apk_count="$(find release-assets -type f -name '*.apk' | wc -l | tr -d ' ')"
           if [ "$apk_count" != "4" ]; then
