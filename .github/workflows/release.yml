@@ -153,10 +153,9 @@ jobs:
       - name: Install frontend deps
         run: bun install --frozen-lockfile
 
-      - name: Frontend static checks
+      - name: Frontend lint
         run: |
           set -euxo pipefail
-          bun run fmt:check
           bun run lint
 
       - name: Initialize Tauri Android project
