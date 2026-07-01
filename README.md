@@ -63,7 +63,7 @@
 
 ## Android 发布
 
-本项目不在本地构建 APK。发布时由 GitHub Actions 初始化 Tauri Android 工程、构建分架构 APK、签名并上传到 GitHub Release。
+
 
 ### Release 文件命名
 
