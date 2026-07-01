@@ -34,7 +34,6 @@ import android.provider.Settings
 import android.webkit.WebView
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
-import app.tauri.TauriActivity
 import java.io.File
 
 class MainActivity : TauriActivity() {
