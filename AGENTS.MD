@@ -5,7 +5,7 @@
 ## 接手约定
 
 - 项目是 Tauri 2 + React 19 + Vite + TanStack Router/Query + Zustand + shadcn/ui + Rust reqwest。
-- 当前优先桌面端体验，小屏适配不是近期重点。
+- 当前分支优先 Android 移植体验，布局改动必须同时考虑手机、平板和桌面宽度，避免状态栏、手势导航栏、底部导航、阅读器底栏互相遮挡。
 - 不要手动编辑 `src/routeTree.gen.ts`，路由树由 TanStack Router 插件、HMR 或 build 生成。
 - 读取或写入包含中文的文件时必须显式使用 UTF-8，避免 Windows 终端默认编码导致乱码。
 - 可以并行读取文件或搜索；文件编辑使用单次 `apply_patch`，不要重复或并行套同一补丁。
@@ -33,7 +33,8 @@
 
 - 发布前必须同步修改三处版本号：`package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`。
 - 改完 Rust crate 版本后运行 `cargo check`，更新并验证 `src-tauri/Cargo.lock` 中的 `jm-boom` 版本。
-- 每个发布 tag 必须有对应发布日志：`docs/release-notes/<tag>.md`，例如 `docs/release-notes/v0.2.2.md`。
+- 每次发布新版本都必须同步编写对应发布日志：`docs/release-notes/<tag>.md`，例如 `docs/release-notes/v0.2.2.md`。没有发布日志不允许触发 Release。
+- Android 版本发布日志需要记录本次手机/平板适配、全面屏安全区、外部存储、下载目录、日志目录、缓存显示等用户可感知变化。
 - 发布日志按上一个 tag 到本次发布的 commit 生成，建议先看提交范围：
   - `git describe --tags --abbrev=0`
   - `git log <previous-tag>..HEAD --oneline`
