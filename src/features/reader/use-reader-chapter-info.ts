@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
-import { getComicDetail } from '@/lib/api/comic'
+import { getComicDetail, type ComicChapter } from '@/lib/api/comic'
 import { queryKeys } from '@/lib/query-keys'
 import { useSettingsStore } from '@/stores/settings-store'
 import { READER_GC_TIME, READER_STALE_TIME } from './constants'
 import { resolveReaderChapterInfo } from './chapter-utils'
 import type { ReaderSearch } from './types'
+
+const EMPTY_READER_CHAPTERS: ComicChapter[] = []
 
 export function useReaderChapterInfo({
   comicId,
@@ -29,7 +31,7 @@ export function useReaderChapterInfo({
     refetchOnMount: false,
     refetchOnWindowFocus: false
   })
-  const chapters = albumDetail.data?.comic.series ?? []
+  const chapters = albumDetail.data?.comic.series ?? EMPTY_READER_CHAPTERS
   const chapterInfo = useMemo(
     () =>
       resolveReaderChapterInfo({
