@@ -20,7 +20,7 @@ export function BackTop() {
       variant="outline"
       size="icon"
       aria-label="回到顶部"
-      className="fixed right-8 bottom-8 z-50 bg-background/80 backdrop-blur"
+      className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-50 bg-background/80 backdrop-blur md:right-8 md:bottom-8"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
     >
       <ChevronUpIcon className="size-4" />
@@ -42,8 +42,8 @@ export function SectionHeading({ title, description }: { title: string; descript
 export function ComicDetailSkeleton() {
   return (
     <div className="space-y-10">
-      <section className="grid grid-cols-[240px_minmax(0,1fr)] gap-8">
-        <div className="aspect-[3/4] animate-pulse rounded-md bg-muted" />
+      <section className="grid gap-5 md:grid-cols-[240px_minmax(0,1fr)] md:gap-8">
+        <div className="mx-auto aspect-[3/4] w-full max-w-[240px] animate-pulse rounded-md bg-muted md:max-w-none" />
         <div className="space-y-5 py-1">
           <div className="h-5 w-56 animate-pulse rounded bg-muted" />
           <div className="space-y-3">
@@ -60,7 +60,7 @@ export function ComicDetailSkeleton() {
           </div>
         </div>
       </section>
-      <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-8">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-8">
           <ChapterSkeletonList />
         </div>

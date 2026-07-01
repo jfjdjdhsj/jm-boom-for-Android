@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 type TauriInvokeArgs = Record<string, unknown> | number[] | ArrayBuffer | Uint8Array
 
-const DEFAULT_TAURI_RUNTIME_MESSAGE = 'This content needs the Tauri desktop runtime.'
+const DEFAULT_TAURI_RUNTIME_MESSAGE = 'This content needs the Tauri app runtime.'
 
 type TauriCommandErrorPayload = {
   kind: string

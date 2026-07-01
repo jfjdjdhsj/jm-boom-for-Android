@@ -1,5 +1,9 @@
 import { getVersion } from '@tauri-apps/api/app'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { hasTauriRuntime, tauriInvoke } from './tauri'
+
+export const PROJECT_REPO_URL = 'https://github.com/jfjdjdhsj/jm-boom-for-Android'
+export const PROJECT_RELEASE_URL = `${PROJECT_REPO_URL}/releases/latest`
 
 export type RemoteSettingParams = {
   endpoint?: string | null
@@ -26,6 +30,7 @@ export type AppUpdateCheckResult = {
   version: string | null
   notes: string | null
   pubDate: string | null
+  manualInstallUrl: string | null
 }
 
 export type DiagnosticsInfo = {
@@ -39,7 +44,7 @@ export async function getRemoteSetting({
   return tauriInvoke<RemoteSetting>(
     'get_remote_setting',
     { endpoint },
-    'Remote setting needs the Tauri desktop runtime.'
+    'Remote setting needs the Tauri app runtime.'
   )
 }
 
@@ -47,7 +52,7 @@ export async function discoverApiEndpoints(): Promise<ApiEndpointProbe[]> {
   return tauriInvoke<ApiEndpointProbe[]>(
     'discover_api_endpoints',
     undefined,
-    'API endpoint discovery needs the Tauri desktop runtime.'
+    'API endpoint discovery needs the Tauri app runtime.'
   )
 }
 
@@ -86,7 +91,8 @@ export async function checkAppUpdate({
       available: false,
       version: null,
       notes: null,
-      pubDate: null
+      pubDate: null,
+      manualInstallUrl: null
     }
   }
 
@@ -98,7 +104,16 @@ export async function installAppUpdate(): Promise<boolean> {
     return false
   }
 
+  if (isAndroidRuntime()) {
+    await openUrl(PROJECT_RELEASE_URL)
+    return true
+  }
+
   return tauriInvoke<boolean>('install_app_update')
+}
+
+export function isAndroidRuntime() {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 }
 
 export async function getDiagnosticsInfo(): Promise<DiagnosticsInfo> {

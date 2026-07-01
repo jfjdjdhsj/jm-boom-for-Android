@@ -83,7 +83,7 @@ export async function searchComic({
         externPayload: extern,
         endpoint
       },
-      'Search needs the Tauri desktop runtime. Start the app with the Tauri command.'
+      'Search needs the Tauri app runtime. Start the app with the Tauri command.'
     ),
     15000
   )

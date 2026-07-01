@@ -44,8 +44,13 @@ export function ComicHero({
   ].filter(Boolean)
 
   return (
-    <section className="grid grid-cols-[240px_minmax(0,1fr)] gap-8">
-      <ComicCover id={comic.id} title={comic.title} image={comic.image} className="w-full" />
+    <section className="grid gap-5 md:grid-cols-[240px_minmax(0,1fr)] md:gap-8">
+      <ComicCover
+        id={comic.id}
+        title={comic.title}
+        image={comic.image}
+        className="mx-auto w-full max-w-[240px] md:max-w-none"
+      />
 
       <div className="min-w-0 space-y-5 py-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -58,7 +63,9 @@ export function ComicHero({
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-4xl leading-tight font-bold tracking-normal">{comic.title}</h1>
+          <h1 className="text-2xl leading-tight font-bold tracking-normal sm:text-3xl md:text-4xl">
+            {comic.title}
+          </h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <UserRoundIcon className="size-4" />
             <SearchLinks items={comic.author} fallback="N/A" className="min-w-0" />
@@ -73,8 +80,8 @@ export function ComicHero({
           {comic.description || '暂无简介'}
         </p>
 
-        <div className="flex flex-wrap gap-2">
-          <Button asChild>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <Button asChild className="w-full sm:w-auto">
             <Link
               to="/reader/$comicId"
               params={{ comicId: startReading.readId }}
@@ -92,7 +99,12 @@ export function ComicHero({
               开始阅读
             </Link>
           </Button>
-          <Button variant="outline" disabled={downloadBusy} onClick={onDownloadClick}>
+          <Button
+            variant="outline"
+            disabled={downloadBusy}
+            onClick={onDownloadClick}
+            className="w-full sm:w-auto"
+          >
             <DownloadIcon className="size-4" />
             下载
           </Button>
@@ -100,6 +112,7 @@ export function ComicHero({
             variant={comic.isFavorite ? 'secondary' : 'outline'}
             onClick={onFavoriteClick}
             disabled={favoriteBusy}
+            className="w-full sm:w-auto"
           >
             {comic.isFavorite ? (
               <BookmarkCheckIcon className="size-4" />
@@ -172,7 +185,7 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
   ]
 
   return (
-    <div className="flex items-stretch rounded-md bg-card/60 text-center text-sm">
+    <div className="grid grid-cols-2 items-stretch rounded-md bg-card/60 text-center text-sm md:flex">
       {stats.map((stat, index) => {
         const content = (
           <>
@@ -199,7 +212,9 @@ function StatsRow({ comic, onCommentsClick }: { comic: ComicDetail; onCommentsCl
                 {content}
               </div>
             )}
-            {index < stats.length - 1 ? <Separator orientation="vertical" /> : null}
+            {index < stats.length - 1 ? (
+              <Separator orientation="vertical" className="hidden md:block" />
+            ) : null}
           </div>
         )
       })}

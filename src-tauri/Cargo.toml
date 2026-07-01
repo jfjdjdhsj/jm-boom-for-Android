@@ -1,6 +1,6 @@
 [package]
 name = "jm-boom"
-version = "0.4.2"
+version = "0.0.1"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -20,7 +20,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
-tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 aes = "0.8"
@@ -36,3 +35,6 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 url = "2"
 webp = "0.3.1"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+tauri-plugin-updater = "2"

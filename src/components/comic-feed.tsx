@@ -41,7 +41,7 @@ export function FeedHeader({
 
 export function ComicGrid({ items }: { items: FeedComic[] }) {
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
       {items.map(item => (
         <ComicCard key={item.id} item={item} />
       ))}
@@ -128,7 +128,7 @@ function OverflowTooltipTitle({ title }: { title: string }) {
 
 export function ComicGridSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
       {Array.from({ length: count }).map((_, index) => (
         <Card key={index} size="sm" className="overflow-hidden rounded-md py-0">
           <div className="aspect-square animate-pulse bg-muted" />

@@ -119,10 +119,10 @@ export function ReaderStripWindow({
   return (
     <div
       ref={containerRef}
-      className="h-screen w-screen overflow-y-auto overscroll-contain bg-neutral-950 scroll-smooth [scrollbar-gutter:stable]"
+      className="h-dvh w-screen overflow-y-auto overscroll-contain bg-neutral-950 scroll-smooth [scrollbar-gutter:stable]"
       onScroll={scheduleResolveCurrentIndex}
     >
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center pb-32">
+      <div className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col items-center pb-32">
         {indexes.map(index => (
           <ReaderStripImage
             key={index}

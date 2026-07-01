@@ -1,4 +1,4 @@
-name: Release
+name: Android Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag, for example v0.2.2'
+        description: 'Release tag, for example v0.0.1'
         required: true
         type: string
 
@@ -15,8 +15,13 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  group: android-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
   cancel-in-progress: true
+
+env:
+  PRODUCT_NAME: JM-Boom
+  ANDROID_BUILD_TOOLS_VERSION: '35.0.0'
+  ANDROID_NDK_VERSION: '27.2.12479018'
 
 jobs:
   prepare-release:
@@ -44,7 +49,7 @@ jobs:
           fi
 
           if ! echo "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$'; then
-            echo "Release tag must look like v0.2.2, got: $tag" >&2
+            echo "Release tag must look like v0.0.1, got: $tag" >&2
             exit 1
           fi
 
@@ -92,26 +97,15 @@ jobs:
 
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-  build-release:
-    name: Build ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-22.04
     needs: prepare-release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-2022
-            platform: windows-x86_64
-            arch: x86_64
-          - os: windows-11-arm
-            platform: windows-aarch64
-            arch: arm64
-          - os: ubuntu-22.04
-            platform: linux-x86_64
-            arch: x86_64
-          - os: ubuntu-22.04-arm
-            platform: linux-aarch64
-            arch: arm64
+    env:
+      RUSTFLAGS: -D warnings
+      ANDROID_KEY_BASE64: ${{ secrets.ANDROID_KEY_BASE64 }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -121,147 +115,115 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
-      - name: Add Windows ARM64 target
-        if: runner.os == 'Windows' && matrix.arch == 'arm64'
-        shell: pwsh
-        run: rustup target add aarch64-pc-windows-msvc
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Install Linux system deps
-        if: runner.os == 'Linux'
-        shell: bash
+      - name: Install Android SDK packages
         run: |
           set -euxo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            curl \
-            elfutils \
-            file \
-            flatpak \
-            flatpak-builder \
-            libayatana-appindicator3-dev \
-            libgtk-3-dev \
-            librsvg2-dev \
-            libssl-dev \
-            patchelf \
-            pkg-config \
-            rpm \
-            wget \
-            xdg-utils
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev \
-            || sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.0-dev
-          sudo apt-get install -y --no-install-recommends libsoup-3.0-dev \
-            || sudo apt-get install -y --no-install-recommends libsoup2.4-dev
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+            "ndk;${ANDROID_NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Validate Android signing secrets
+        run: |
+          set -euo pipefail
+          for secret_name in ANDROID_KEY_BASE64 ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!secret_name}" ]; then
+              echo "$secret_name is required for signed release APKs" >&2
+              exit 1
+            fi
+          done
 
       - name: Install frontend deps
         run: bun install --frozen-lockfile
 
-      - name: Prepare Tauri signing key
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY is required" >&2
-            exit 1
-          fi
-
-          raw="${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
-          key_path="$RUNNER_TEMP/tauri_signing.key"
-          if echo "$raw" | head -n1 | grep -q '^untrusted comment:'; then
-            printf '%s\n' "$raw" > "$key_path"
-          elif decoded=$(printf '%s' "$raw" | base64 --decode 2>/dev/null) && echo "$decoded" | head -n1 | grep -q '^untrusted comment:'; then
-            printf '%s\n' "$decoded" > "$key_path"
-          else
-            printf '%s\n%s\n' "untrusted comment: tauri signing key" "$raw" > "$key_path"
-          fi
-
-          key_b64=$(base64 < "$key_path" | tr -d '\r\n')
-          echo "TAURI_SIGNING_PRIVATE_KEY=$key_b64" >> "$GITHUB_ENV"
-          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> "$GITHUB_ENV"
-          fi
-
-      - name: Build Tauri Windows MSI
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          RELEASE_ARCH: ${{ matrix.arch }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if ($env:RELEASE_ARCH -eq 'arm64') {
-            bun run tauri build --target aarch64-pc-windows-msvc --bundles msi
-          } else {
-            bun run tauri build --bundles msi
-          }
-
-      - name: Build Tauri Linux packages
-        if: runner.os == 'Linux'
-        run: bun run tauri build --bundles appimage,deb,rpm
-
-      - name: Prepare Windows release assets
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          RELEASE_ARCH: ${{ matrix.arch }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
-          $version = '${{ needs.prepare-release.outputs.tag }}'
-          $isArm64 = $env:RELEASE_ARCH -eq 'arm64'
-          $targetRoot = if ($isArm64) { 'src-tauri/target/aarch64-pc-windows-msvc/release' } else { 'src-tauri/target/release' }
-          $assetSuffix = if ($isArm64) { '-arm64' } else { '' }
-          $msi = Get-ChildItem -Path (Join-Path $targetRoot 'bundle/msi') -Recurse -Include *.msi -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($null -eq $msi) {
-            throw 'No MSI artifact found'
-          }
-          $dest = "JM-Boom-$version-Windows$assetSuffix.msi"
-          Copy-Item $msi.FullName "release-assets/$dest"
-          $sig = "$($msi.FullName).sig"
-          if (-not (Test-Path $sig)) {
-            throw "No updater signature found for $($msi.Name)"
-          }
-          Copy-Item $sig "release-assets/$dest.sig"
-
-      - name: Prepare Linux release assets
-        if: runner.os == 'Linux'
-        shell: bash
-        env:
-          RELEASE_ARCH: ${{ matrix.arch }}
+      - name: Frontend static checks
         run: |
           set -euxo pipefail
+          bun run fmt:check
+          bun run lint
+
+      - name: Initialize Tauri Android project
+        run: |
+          set -euxo pipefail
+          if [ ! -d src-tauri/gen/android ]; then
+            CI=true bun run tauri android init
+          fi
+
+      - name: Build split APKs
+        run: |
+          set -euxo pipefail
+          bun run tauri android build --apk --split-per-abi \
+            --target aarch64 \
+            --target armv7 \
+            --target i686 \
+            --target x86_64
+
+      - name: Sign and rename APKs
+        env:
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: |
+          set -euo pipefail
           mkdir -p release-assets
-          version='${{ needs.prepare-release.outputs.tag }}'
-          appimage="$(find src-tauri/target/release/bundle -name '*.AppImage' -type f | head -1 || true)"
-          if [ -z "$appimage" ]; then
-            echo "No AppImage artifact found" >&2
+
+          keystore="$RUNNER_TEMP/android-release.jks"
+          printf '%s' "$ANDROID_KEY_BASE64" | base64 --decode > "$keystore"
+
+          apksigner="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/apksigner"
+          zipalign="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/zipalign"
+
+          shopt -s nullglob
+          for apk in $(find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' | sort); do
+            file_name="$(basename "$apk")"
+            case "$file_name" in
+              *arm64-v8a*) arch="arm64-v8a" ;;
+              *armeabi-v7a*) arch="armeabi-v7a" ;;
+              *x86_64*) arch="x86_64" ;;
+              *x86*) arch="x86" ;;
+              *) continue ;;
+            esac
+
+            aligned="$RUNNER_TEMP/${PRODUCT_NAME}-${arch}-aligned.apk"
+            dest="release-assets/${PRODUCT_NAME}-${arch}-${RELEASE_TAG}.apk"
+            "$zipalign" -p -f 4 "$apk" "$aligned"
+            "$apksigner" sign \
+              --ks "$keystore" \
+              --ks-key-alias "$ANDROID_KEY_ALIAS" \
+              --ks-pass "pass:$ANDROID_KEY_PASSWORD" \
+              --key-pass "pass:$ANDROID_KEY_PASSWORD" \
+              --out "$dest" \
+              "$aligned"
+            "$apksigner" verify --verbose "$dest"
+          done
+
+          apk_count="$(find release-assets -type f -name '*.apk' | wc -l | tr -d ' ')"
+          if [ "$apk_count" != "4" ]; then
+            echo "Expected 4 signed APKs, got $apk_count" >&2
+            find src-tauri/gen/android/app/build/outputs/apk -type f -name '*.apk' -print >&2
             exit 1
           fi
-          dest="JM-Boom-$version-Linux-$RELEASE_ARCH.AppImage"
-          cp "$appimage" "release-assets/$dest"
-          if [ ! -f "$appimage.sig" ]; then
-            echo "No updater signature found for $(basename "$appimage")" >&2
-            exit 1
-          fi
-          cp "$appimage.sig" "release-assets/$dest.sig"
 
-          deb="$(find src-tauri/target/release/bundle -name '*.deb' -type f | head -1 || true)"
-          if [ -n "$deb" ]; then
-            cp "$deb" "release-assets/JM-Boom-$version-Linux-$RELEASE_ARCH.deb"
-          fi
-
-          rpm="$(find src-tauri/target/release/bundle -name '*.rpm' -type f | head -1 || true)"
-          if [ -n "$rpm" ]; then
-            cp "$rpm" "release-assets/JM-Boom-$version-Linux-$RELEASE_ARCH.rpm"
-          fi
-
-      - name: Upload release assets to workflow
+      - name: Upload Android release assets to workflow
         uses: actions/upload-artifact@v7
         with:
-          name: release-assets-${{ matrix.platform }}
-          path: release-assets/*
+          name: release-assets-android
+          path: release-assets/*.apk
           if-no-files-found: error
 
   publish-release:
@@ -269,19 +231,18 @@ jobs:
     runs-on: ubuntu-22.04
     needs:
       - prepare-release
-      - build-release
+      - build-android
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare-release.outputs.tag }}
 
-      - name: Download release assets
+      - name: Download Android release assets
         uses: actions/download-artifact@v8
         with:
-          pattern: release-assets-*
+          name: release-assets-android
           path: release-assets
-          merge-multiple: true
 
       - name: Ensure release notes
         run: test -f "docs/release-notes/${{ needs.prepare-release.outputs.tag }}.md"
@@ -290,98 +251,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare-release.outputs.tag }}
-          name: JM Boom ${{ needs.prepare-release.outputs.tag }}
+          name: JM Boom Android ${{ needs.prepare-release.outputs.tag }}
           body_path: docs/release-notes/${{ needs.prepare-release.outputs.tag }}.md
           prerelease: false
-          files: release-assets/*
-
-  assemble-latest-json:
-    name: Assemble latest.json
-    runs-on: ubuntu-22.04
-    needs:
-      - prepare-release
-      - publish-release
-    steps:
-      - name: Download release assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.prepare-release.outputs.tag }}
-        run: |
-          set -euo pipefail
-          mkdir -p dl
-          gh release download "$TAG" --dir dl --repo "$GITHUB_REPOSITORY"
-
-      - name: Generate latest.json
-        env:
-          REPO: ${{ github.repository }}
-          TAG: ${{ needs.prepare-release.outputs.tag }}
-        run: |
-          set -euo pipefail
-          version="${TAG#v}"
-          pub_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          base_url="https://github.com/$REPO/releases/download/$TAG"
-          win_x64_url=""; win_x64_sig=""
-          win_arm64_url=""; win_arm64_sig=""
-          linux_x64_url=""; linux_x64_sig=""
-          linux_arm64_url=""; linux_arm64_sig=""
-
-          shopt -s nullglob
-          for sig_file in dl/*.sig; do
-            artifact="${sig_file%.sig}"
-            file_name="$(basename "$artifact")"
-            signature="$(cat "$sig_file")"
-            url="$base_url/$file_name"
-
-            case "$file_name" in
-              *-Windows-arm64.msi)
-                win_arm64_url="$url"; win_arm64_sig="$signature";;
-              *-Windows.msi)
-                win_x64_url="$url"; win_x64_sig="$signature";;
-              *-Linux-arm64.AppImage|*-Linux-arm64.appimage)
-                linux_arm64_url="$url"; linux_arm64_sig="$signature";;
-              *-Linux-x86_64.AppImage|*-Linux-x86_64.appimage)
-                linux_x64_url="$url"; linux_x64_sig="$signature";;
-            esac
-          done
-
-          tmp_json="$(mktemp)"
-          {
-            echo "{"
-            echo "  \"version\": \"$version\","
-            echo "  \"notes\": \"JM Boom $TAG\","
-            echo "  \"pub_date\": \"$pub_date\","
-            echo "  \"platforms\": {"
-            first=1
-            if [ -n "$win_x64_url" ] && [ -n "$win_x64_sig" ]; then
-              [ "$first" -eq 0 ] && echo ","
-              echo "    \"windows-x86_64\": {\"signature\": \"$win_x64_sig\", \"url\": \"$win_x64_url\"}"
-              first=0
-            fi
-            if [ -n "$win_arm64_url" ] && [ -n "$win_arm64_sig" ]; then
-              [ "$first" -eq 0 ] && echo ","
-              echo "    \"windows-aarch64\": {\"signature\": \"$win_arm64_sig\", \"url\": \"$win_arm64_url\"}"
-              first=0
-            fi
-            if [ -n "$linux_x64_url" ] && [ -n "$linux_x64_sig" ]; then
-              [ "$first" -eq 0 ] && echo ","
-              echo "    \"linux-x86_64\": {\"signature\": \"$linux_x64_sig\", \"url\": \"$linux_x64_url\"}"
-              first=0
-            fi
-            if [ -n "$linux_arm64_url" ] && [ -n "$linux_arm64_sig" ]; then
-              [ "$first" -eq 0 ] && echo ","
-              echo "    \"linux-aarch64\": {\"signature\": \"$linux_arm64_sig\", \"url\": \"$linux_arm64_url\"}"
-              first=0
-            fi
-            echo ""
-            echo "  }"
-            echo "}"
-          } > "$tmp_json"
-
-          jq -e '.platforms | length > 0' "$tmp_json" >/dev/null
-          mv "$tmp_json" latest.json
-
-      - name: Upload latest.json to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.prepare-release.outputs.tag }}
-        run: gh release upload "$TAG" latest.json --clobber --repo "$GITHUB_REPOSITORY"
+          files: release-assets/*.apk

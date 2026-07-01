@@ -74,7 +74,7 @@ export function ComicDownloadDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="h-full w-[460px] overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-[460px] data-[vaul-drawer-direction=right]:sm:max-w-[460px]">
+      <DrawerContent className="h-full w-full max-w-[460px] overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:sm:max-w-[460px]">
         <DrawerHeader>
           <DrawerTitle>选择下载章节</DrawerTitle>
           <DrawerDescription className="line-clamp-2">{comicTitle}</DrawerDescription>

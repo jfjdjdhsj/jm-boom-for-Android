@@ -6,9 +6,9 @@
 
 当前项目处于高速开发中，功能和特性可能会发生巨大变化。
 
-测试版本已发布，暂时支持 `Windows`、`Linux`。
+当前分支用于 Android 移植版，目标是在 Android 上保持现有功能不变。
 
-前往下载 [Release](https://github.com/ppxb/jm-boom/releases)。
+前往下载 [Release](https://github.com/jfjdjdhsj/jm-boom-for-Android/releases)。
 
 ## 截图
 
@@ -61,12 +61,51 @@
 - [ ] 本地漫画管理
 - [ ] 其他漫画源的接入
 
+## Android 发布
+
+本项目不在本地构建 APK。发布时由 GitHub Actions 初始化 Tauri Android 工程、构建分架构 APK、签名并上传到 GitHub Release。
+
+### Release 文件命名
+
+Android Release 产物按以下格式命名：
+
+```text
+JM-Boom-架构-v版本号.apk
+```
+
+当前 workflow 会生成：
+
+- `JM-Boom-arm64-v8a-v0.0.1.apk`
+- `JM-Boom-armeabi-v7a-v0.0.1.apk`
+- `JM-Boom-x86_64-v0.0.1.apk`
+- `JM-Boom-x86-v0.0.1.apk`
+
+### GitHub Actions Secrets
+
+发布前需要在仓库 `Settings -> Secrets and variables -> Actions` 中配置：
+
+- `ANDROID_KEY_BASE64`：Android 签名 keystore 的 base64 内容
+- `ANDROID_KEY_ALIAS`：签名 key alias
+- `ANDROID_KEY_PASSWORD`：keystore/key 密码
+
+### 触发发布
+
+推送 tag 或手动运行 `Android Release` workflow 均可触发发布。版本号需要与 `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 和 `src-tauri/Cargo.lock` 保持一致。
+
+```bash
+git tag v0.0.1
+git push origin v0.0.1
+```
+
 ## 环境依赖
 
 - Bun：用于安装前端依赖、运行 Vite 和 Tauri CLI
 - Rust stable：用于编译 `src-tauri`
+- Android SDK/NDK：GitHub Actions 会自动安装，用于构建 Android APK
 
 ## 启动项目
+
+桌面开发仍可使用原 Tauri 开发流程：
 
 ```bash
 bun install
@@ -98,10 +137,10 @@ bun run tauri dev
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=ppxb%2Fjm-boom&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=jfjdjdhsj%2Fjm-boom-for-Android&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ppxb/jm-boom&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ppxb/jm-boom&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ppxb/jm-boom&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=jfjdjdhsj/jm-boom-for-Android&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=jfjdjdhsj/jm-boom-for-Android&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=jfjdjdhsj/jm-boom-for-Android&type=date&legend=top-left" />
  </picture>
 </a>

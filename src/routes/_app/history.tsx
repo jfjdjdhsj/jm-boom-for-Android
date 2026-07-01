@@ -34,7 +34,7 @@ function HistoryPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
+      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_32px_16px_96px]">
         <PageHeader title="历史观看" desc="本地保存的阅读进度">
           <ClearHistoryDialog
             disabled={sortedItems.length === 0}
@@ -48,7 +48,7 @@ function HistoryPage() {
         {sortedItems.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="grid grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
             {sortedItems.map(item => (
               <HistoryCard key={item.comicId} item={item} />
             ))}

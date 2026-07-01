@@ -9,12 +9,10 @@ import {
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import type { AppUpdateCheckResult } from '@/lib/api/setting'
+import { PROJECT_REPO_URL, type AppUpdateCheckResult } from '@/lib/api/setting'
 import { hasTauriRuntime } from '@/lib/api/tauri'
 import { cn } from '@/lib/utils'
 import { SettingRow, SettingsSection } from './shared'
-
-const PROJECT_REPO_URL = 'https://github.com/ppxb/jm-boom'
 
 export function VersionSection({
   currentVersion,
@@ -63,6 +61,7 @@ function AppUpdatePanel({
   onInstall: () => void
 }) {
   const hasUpdate = Boolean(update?.available && update.version)
+  const isManualInstall = Boolean(hasUpdate && update?.manualInstallUrl)
   const openRepository = () => {
     if (hasTauriRuntime()) {
       void openUrl(PROJECT_REPO_URL).catch(error => {
@@ -75,8 +74,8 @@ function AppUpdatePanel({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="inline-flex h-9 items-center gap-2 rounded-4xl border border-border bg-muted/40 px-3 whitespace-nowrap">
+    <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
+      <div className="inline-flex min-h-9 flex-wrap items-center gap-2 rounded-4xl border border-border bg-muted/40 px-3 py-1 sm:flex-nowrap sm:whitespace-nowrap">
         <span className="text-sm font-medium tabular-nums">{formatVersion(currentVersion)}</span>
         <Button
           type="button"
@@ -130,7 +129,17 @@ function AppUpdatePanel({
         ) : (
           <RefreshCwIcon className="size-4" />
         )}
-        {isInstalling ? '正在更新' : isChecking ? '检查中' : hasUpdate ? '立即更新' : '检查更新'}
+        {isInstalling
+          ? isManualInstall
+            ? '正在打开'
+            : '正在更新'
+          : isChecking
+            ? '检查中'
+            : hasUpdate
+              ? isManualInstall
+                ? '打开下载页'
+                : '立即更新'
+              : '检查更新'}
       </Button>
     </div>
   )

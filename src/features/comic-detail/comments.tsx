@@ -34,14 +34,14 @@ export function CommentsDrawer({
 }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="right">
-      <DrawerContent className="h-full w-[440px] overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-[440px] data-[vaul-drawer-direction=right]:sm:max-w-[440px]">
+      <DrawerContent className="h-full w-full max-w-[440px] overflow-hidden rounded-l-2xl p-0 before:inset-0 before:rounded-l-2xl before:rounded-r-none data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:sm:max-w-[440px]">
         <DrawerHeader>
           <DrawerTitle>评论</DrawerTitle>
           <DrawerDescription>共 {formatNumber(state.total)} 条评论</DrawerDescription>
         </DrawerHeader>
 
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-6 pb-6"
+          className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 sm:px-6"
           onScroll={event => handleCommentsScroll(event.currentTarget, state)}
         >
           {state.isLoading ? (

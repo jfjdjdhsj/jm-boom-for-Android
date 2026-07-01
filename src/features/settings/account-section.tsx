@@ -82,7 +82,7 @@ export function AccountSection({
 
       {autoLogin ? (
         <SettingRow title="账号密码" description="账号密码会加密保存到 SQLite，用于自动登录">
-          <div className="grid w-[360px] grid-cols-2 items-center gap-2">
+          <div className="grid w-full grid-cols-1 items-center gap-2 sm:w-[360px] sm:grid-cols-2">
             <Input
               value={username}
               disabled={isBusy}

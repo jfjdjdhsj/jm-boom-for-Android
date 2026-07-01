@@ -33,7 +33,7 @@ function HomePage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="p-[32px_80px_16px_96px]">
+      <div className="px-4 pt-5 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-6 md:p-[32px_80px_16px_96px]">
         <div className="min-w-0 space-y-10">
           <FeedHeader
             title="首页"
@@ -133,7 +133,7 @@ function HomeFeedDirectory({ sections }: { sections: HomeFeedSection[] }) {
   const [activeSectionId, setActiveSectionId] = useActiveHomeSection(sectionIds)
 
   return (
-    <nav className="group fixed top-1/2 right-0 z-40 -translate-y-1/2">
+    <nav className="group fixed top-1/2 right-0 z-40 hidden -translate-y-1/2 md:block">
       <div className="flex w-10 flex-col items-end gap-0.5 py-3 pr-3">
         {sections.map(section => {
           const sectionId = homeSectionId(section)
@@ -209,7 +209,7 @@ function BackTop() {
       variant="outline"
       size="icon"
       aria-label="回到顶部"
-      className="fixed right-8 bottom-8 z-50 bg-background/80 backdrop-blur"
+      className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-50 bg-background/80 backdrop-blur md:right-8 md:bottom-8"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
     >
       <ChevronUpIcon className="size-4" />
