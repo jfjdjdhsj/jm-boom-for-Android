@@ -66,7 +66,7 @@ function MePage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto w-full max-w-6xl space-y-6 p-[32px_32px_16px_96px]">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col p-[32px_32px_16px_96px]">
         <PageHeader title="个人中心" desc="展示用户信息">
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" disabled>
@@ -81,7 +81,7 @@ function MePage() {
           </div>
         </PageHeader>
 
-        <div className="flex flex-col items-center pt-10">
+        <div className="flex flex-1 flex-col items-center justify-center py-10">
           <Avatar className="size-32">
             <AvatarImage src={user.avatarUrl} />
             <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
