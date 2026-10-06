@@ -20,5 +20,6 @@ function ReaderRoute() {
   const { comicId } = Route.useParams()
   const search = Route.useSearch()
 
-  return <ReaderPage comicId={comicId} search={search} />
+  // 切换章节时重建阅读器，避免沿用上一章的页码、滚动位置等状态
+  return <ReaderPage key={comicId} comicId={comicId} search={search} />
 }

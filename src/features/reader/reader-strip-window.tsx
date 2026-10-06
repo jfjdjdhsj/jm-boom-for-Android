@@ -8,6 +8,9 @@ import { READER_GC_TIME, READER_STALE_TIME } from './constants'
 import type { ReaderPageQueryKeyFactory, ReaderPageRequester } from './use-reader-page-query'
 
 const STRIP_PAGE_PRELOAD_DISTANCE = 2
+// 程序化滚动（切章定位、翻页定位）期间会连续经过中间页，
+// 这段时间内不上报页码，避免把阅读进度写成中途经过的某一页。
+const STRIP_SCROLL_SETTLE_MS = 500
 
 export function ReaderStripWindow({
   containerRef,
@@ -32,6 +35,7 @@ export function ReaderStripWindow({
   const hasInitialScrolledRef = useRef(false)
   const lastNavigationRequestRef = useRef(navigationRequestId)
   const currentIndexRef = useRef(currentIndex)
+  const scrollSettleUntilRef = useRef(0)
 
   useEffect(() => {
     currentIndexRef.current = currentIndex
@@ -79,7 +83,7 @@ export function ReaderStripWindow({
   }, [containerRef, onCurrentIndexChange, pageCount])
 
   const scheduleResolveCurrentIndex = useCallback(() => {
-    if (frameRef.current !== null) {
+    if (Date.now() < scrollSettleUntilRef.current || frameRef.current !== null) {
       return
     }
 
@@ -108,6 +112,7 @@ export function ReaderStripWindow({
       return
     }
 
+    scrollSettleUntilRef.current = Date.now() + STRIP_SCROLL_SETTLE_MS
     container.scrollTo({
       top: target.offsetTop,
       behavior: hasInitialScrolledRef.current ? 'smooth' : 'auto'
