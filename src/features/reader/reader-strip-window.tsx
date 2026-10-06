@@ -11,6 +11,10 @@ const STRIP_PAGE_PRELOAD_DISTANCE = 2
 // 程序化滚动（切章定位、翻页定位）期间会连续经过中间页，
 // 这段时间内不上报页码，避免把阅读进度写成中途经过的某一页。
 const STRIP_SCROLL_SETTLE_MS = 500
+// 切章刚挂载时容器可能还带着上一章的滚动位置，图片陆续加载又会改变高度。
+// 这段时间内只接受幅度很小的页码变化，避免把末页/旧页码上报成新章节的进度。
+const STRIP_MOUNT_SETTLE_MS = 1500
+const STRIP_MAX_MOUNT_JUMP = 4
 
 export function ReaderStripWindow({
   containerRef,
@@ -36,6 +40,11 @@ export function ReaderStripWindow({
   const lastNavigationRequestRef = useRef(navigationRequestId)
   const currentIndexRef = useRef(currentIndex)
   const scrollSettleUntilRef = useRef(0)
+  const mountedAtRef = useRef(0)
+
+  useEffect(() => {
+    mountedAtRef.current = Date.now()
+  }, [])
 
   useEffect(() => {
     currentIndexRef.current = currentIndex
@@ -44,6 +53,7 @@ export function ReaderStripWindow({
   useEffect(() => {
     pageRefs.current = pageRefs.current.slice(0, pageCount)
     hasInitialScrolledRef.current = false
+    mountedAtRef.current = Date.now()
   }, [pageCount])
 
   const setPageElement = useCallback((index: number, element: HTMLElement | null) => {
@@ -53,7 +63,9 @@ export function ReaderStripWindow({
   const resolveCurrentIndex = useCallback(() => {
     const container = containerRef.current
 
-    if (!container || pageCount <= 0) {
+    // 首次定位完成前不上报：此时容器位置还没被校正到目标页，
+    // 上报的结果通常是上一章残留的页码。
+    if (!container || pageCount <= 0 || !hasInitialScrolledRef.current) {
       return
     }
 
@@ -77,9 +89,17 @@ export function ReaderStripWindow({
       }
     }
 
-    if (nextIndex !== currentIndexRef.current) {
-      onCurrentIndexChange(nextIndex)
+    if (nextIndex === currentIndexRef.current) {
+      return
     }
+
+    const isMountSettling = Date.now() - mountedAtRef.current < STRIP_MOUNT_SETTLE_MS
+
+    if (isMountSettling && Math.abs(nextIndex - currentIndexRef.current) > STRIP_MAX_MOUNT_JUMP) {
+      return
+    }
+
+    onCurrentIndexChange(nextIndex)
   }, [containerRef, onCurrentIndexChange, pageCount])
 
   const scheduleResolveCurrentIndex = useCallback(() => {
@@ -113,10 +133,33 @@ export function ReaderStripWindow({
     }
 
     scrollSettleUntilRef.current = Date.now() + STRIP_SCROLL_SETTLE_MS
-    container.scrollTo({
-      top: target.offsetTop,
-      behavior: hasInitialScrolledRef.current ? 'smooth' : 'auto'
-    })
+
+    if (hasInitialScrolledRef.current) {
+      container.scrollTo({ top: target.offsetTop, behavior: 'smooth' })
+    } else {
+      // 切章/首次挂载：直接写 scrollTop 强制归位。
+      // 用 scrollTo 时 WebView 可能保留上一章的滚动位置，
+      // 于是观察器会把上一章的末页当成新章节的当前页。
+      container.scrollTop = target.offsetTop
+
+      // 图片陆续加载会改变高度，下一帧再校正一次，确保停在目标页。
+      if (frameRef.current === null) {
+        frameRef.current = window.requestAnimationFrame(() => {
+          frameRef.current = null
+
+          if (!container.isConnected) {
+            return
+          }
+
+          const settled = pageRefs.current[currentIndex]
+
+          if (settled) {
+            container.scrollTop = settled.offsetTop
+          }
+        })
+      }
+    }
+
     hasInitialScrolledRef.current = true
     lastNavigationRequestRef.current = navigationRequestId
   }, [containerRef, currentIndex, navigationRequestId, pageCount])
