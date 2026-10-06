@@ -9,8 +9,21 @@ import {
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { PROJECT_REPO_URL, type AppUpdateCheckResult } from '@/lib/api/setting'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
+import {
+  APP_UPDATE_ABI_LABELS,
+  PROJECT_REPO_URL,
+  type AppUpdateAbi,
+  type AppUpdateCheckResult
+} from '@/lib/api/setting'
 import { hasTauriRuntime } from '@/lib/api/tauri'
+import { UPDATE_ABIS } from '@/stores/settings-store'
 import { cn } from '@/lib/utils'
 import { SettingRow, SettingsSection } from './shared'
 
@@ -19,6 +32,9 @@ export function VersionSection({
   update,
   isChecking,
   isInstalling,
+  downloadPercent,
+  abi,
+  onAbiChange,
   onCheck,
   onInstall
 }: {
@@ -26,9 +42,14 @@ export function VersionSection({
   update: AppUpdateCheckResult | undefined
   isChecking: boolean
   isInstalling: boolean
+  downloadPercent?: number | null
+  abi: AppUpdateAbi
+  onAbiChange: (abi: string) => void
   onCheck: () => void
   onInstall: () => void
 }) {
+  const notes = update?.notes?.trim()
+
   return (
     <SettingsSection icon={<PackageCheckIcon className="size-4" />} title="版本与更新">
       <SettingRow title="当前版本" description="检查 GitHub Releases 上的新版本">
@@ -37,9 +58,37 @@ export function VersionSection({
           update={update}
           isChecking={isChecking}
           isInstalling={isInstalling}
+          downloadPercent={downloadPercent}
           onCheck={onCheck}
           onInstall={onInstall}
         />
+      </SettingRow>
+
+      {notes ? (
+        <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+          <div className="text-xs font-medium">更新内容</div>
+          <div className="max-h-64 overflow-y-auto whitespace-pre-wrap text-xs leading-6 text-muted-foreground">
+            {notes}
+          </div>
+        </div>
+      ) : null}
+
+      <SettingRow
+        title="安装包架构"
+        description="默认自动识别当前设备架构，也可以手动指定要下载的安装包"
+      >
+        <Select value={abi} onValueChange={onAbiChange} disabled={isInstalling}>
+          <SelectTrigger className="w-full sm:w-52" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {UPDATE_ABIS.map(value => (
+              <SelectItem key={value} value={value}>
+                {APP_UPDATE_ABI_LABELS[value]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </SettingRow>
     </SettingsSection>
   )
@@ -50,6 +99,7 @@ function AppUpdatePanel({
   update,
   isChecking,
   isInstalling,
+  downloadPercent,
   onCheck,
   onInstall
 }: {
@@ -57,11 +107,12 @@ function AppUpdatePanel({
   update: AppUpdateCheckResult | undefined
   isChecking: boolean
   isInstalling: boolean
+  downloadPercent?: number | null
   onCheck: () => void
   onInstall: () => void
 }) {
   const hasUpdate = Boolean(update?.available && update.version)
-  const isManualInstall = Boolean(hasUpdate && update?.manualInstallUrl)
+  const isDownloading = isInstalling && downloadPercent != null
   const openRepository = () => {
     if (hasTauriRuntime()) {
       void openUrl(PROJECT_REPO_URL).catch(error => {
@@ -129,17 +180,15 @@ function AppUpdatePanel({
         ) : (
           <RefreshCwIcon className="size-4" />
         )}
-        {isInstalling
-          ? isManualInstall
-            ? '正在打开'
-            : '正在更新'
-          : isChecking
-            ? '检查中'
-            : hasUpdate
-              ? isManualInstall
-                ? '打开下载页'
-                : '立即更新'
-              : '检查更新'}
+        {isChecking
+          ? '检查中'
+          : isDownloading
+            ? `下载中 ${Math.min(100, Math.max(0, Math.round(downloadPercent ?? 0)))}%`
+            : isInstalling
+              ? '正在安装'
+              : hasUpdate
+                ? '立即更新'
+                : '检查更新'}
       </Button>
     </div>
   )

@@ -112,3 +112,6 @@ class MainActivity : TauriActivity() {
     }
 }
 KOTLIN
+
+# 顺带配置应用内更新（私有目录下载 + 系统安装器）
+bash "$(dirname "$0")/configure-android-updater.sh"

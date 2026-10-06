@@ -368,7 +368,9 @@ fn open_download_root_dir(app: tauri::AppHandle) -> CommandResult<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+    let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(updater::init());
 
     #[cfg(not(target_os = "android"))]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
@@ -382,6 +384,16 @@ pub fn run() {
                 return Err(std::io::Error::other(error).into());
             }
             tracing::info!("JM Boom started");
+
+            #[cfg(target_os = "android")]
+            {
+                // 上一次更新安装后可能残留安装包，启动后异步清掉。
+                let cleanup_handle = handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    updater::cleanup_android_updates(&cleanup_handle).await;
+                });
+            }
 
             Ok(())
         })
@@ -424,6 +436,7 @@ pub fn run() {
             open_download_task_dir,
             open_download_root_dir,
             updater::check_app_update,
+            updater::download_app_update,
             updater::install_app_update
         ])
         .run(tauri::generate_context!())

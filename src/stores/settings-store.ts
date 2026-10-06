@@ -11,11 +11,14 @@ export const READER_AUTO_READ_STRIP_DISTANCE_RANGE = [10, 100] as const
 export const READER_AUTO_READ_STRIP_INTERVAL_RANGE = [300, 5000] as const
 export const READER_AUTO_READ_PAGE_INTERVAL_RANGE = [800, 10000] as const
 
+export const UPDATE_ABIS = ['auto', 'arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'] as const
+
 export type ApiEndpoint = string
 export type ReaderCacheLimitMb = (typeof READER_CACHE_LIMITS_MB)[number]
 export type ProxyMode = (typeof PROXY_MODES)[number]
 export type ReaderReadMode = (typeof READER_READ_MODES)[number]
 export type ReaderPageDirection = (typeof READER_PAGE_DIRECTIONS)[number]
+export type UpdateAbi = (typeof UPDATE_ABIS)[number]
 
 type SettingsState = {
   api: ApiEndpoint
@@ -31,6 +34,7 @@ type SettingsState = {
   proxyHost: string
   proxyPort: number
   hideCovers: boolean
+  updateAbi: UpdateAbi
   setApi: (api: string) => void
   setReaderCacheLimitMb: (readerCacheLimitMb: number) => void
   setReaderReadMode: (readerReadMode: string) => void
@@ -44,6 +48,7 @@ type SettingsState = {
   setProxyHost: (proxyHost: string) => void
   setProxyPort: (proxyPort: number) => void
   setHideCovers: (hideCovers: boolean) => void
+  setUpdateAbi: (updateAbi: string) => void
   reset: () => void
 }
 
@@ -60,7 +65,8 @@ const DEFAULT_SETTINGS = {
   proxyMode: PROXY_MODES[0],
   proxyHost: '127.0.0.1',
   proxyPort: 7890,
-  hideCovers: true
+  hideCovers: true,
+  updateAbi: UPDATE_ABIS[0]
 } satisfies Pick<
   SettingsState,
   | 'api'
@@ -76,6 +82,7 @@ const DEFAULT_SETTINGS = {
   | 'proxyHost'
   | 'proxyPort'
   | 'hideCovers'
+  | 'updateAbi'
 >
 
 export const useSettingsStore = create<SettingsState>()(
@@ -162,6 +169,11 @@ export const useSettingsStore = create<SettingsState>()(
       setHideCovers: hideCovers => {
         set({ hideCovers })
       },
+      setUpdateAbi: updateAbi => {
+        set({
+          updateAbi: isUpdateAbi(updateAbi) ? updateAbi : DEFAULT_SETTINGS.updateAbi
+        })
+      },
       reset: () => {
         set(DEFAULT_SETTINGS)
       }
@@ -181,7 +193,8 @@ export const useSettingsStore = create<SettingsState>()(
         proxyMode: state.proxyMode,
         proxyHost: state.proxyHost,
         proxyPort: state.proxyPort,
-        hideCovers: state.hideCovers
+        hideCovers: state.hideCovers,
+        updateAbi: state.updateAbi
       })
     }
   )
@@ -211,6 +224,10 @@ function isReaderReadMode(value: string): value is ReaderReadMode {
 
 function isReaderPageDirection(value: string): value is ReaderPageDirection {
   return READER_PAGE_DIRECTIONS.some(direction => direction === value)
+}
+
+function isUpdateAbi(value: string): value is UpdateAbi {
+  return UPDATE_ABIS.some(abi => abi === value)
 }
 
 function isProxyPort(value: number) {

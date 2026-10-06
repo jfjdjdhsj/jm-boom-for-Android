@@ -1,6 +1,27 @@
 import { getVersion } from '@tauri-apps/api/app'
-import { openUrl } from '@tauri-apps/plugin-opener'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { hasTauriRuntime, tauriInvoke } from './tauri'
+
+export const APP_UPDATE_PROGRESS_EVENT = 'app-update-download-progress'
+
+/** auto 表示跟随当前设备架构自动选择安装包 */
+export const APP_UPDATE_ABIS = [
+  'auto',
+  'arm64-v8a',
+  'armeabi-v7a',
+  'x86_64',
+  'x86'
+] as const
+
+export type AppUpdateAbi = (typeof APP_UPDATE_ABIS)[number]
+
+export const APP_UPDATE_ABI_LABELS: Record<AppUpdateAbi, string> = {
+  auto: '自动识别',
+  'arm64-v8a': 'arm64-v8a（64 位）',
+  'armeabi-v7a': 'armeabi-v7a（32 位）',
+  x86_64: 'x86_64（模拟器）',
+  x86: 'x86（模拟器）'
+}
 
 export const PROJECT_REPO_URL = 'https://github.com/jfjdjdhsj/jm-boom-for-Android'
 export const PROJECT_RELEASE_URL = `${PROJECT_REPO_URL}/releases/latest`
@@ -31,6 +52,17 @@ export type AppUpdateCheckResult = {
   notes: string | null
   pubDate: string | null
   manualInstallUrl: string | null
+}
+
+export type AppUpdateDownloadProgress = {
+  downloaded: number
+  total: number
+  percent: number
+}
+
+export type AppUpdateDownloadResult = {
+  version: string
+  path: string
 }
 
 export type DiagnosticsInfo = {
@@ -99,17 +131,42 @@ export async function checkAppUpdate({
   return tauriInvoke<AppUpdateCheckResult>('check_app_update', { force })
 }
 
-export async function installAppUpdate(): Promise<boolean> {
+export async function downloadAppUpdate({
+  version,
+  abi
+}: {
+  version: string
+  abi?: AppUpdateAbi | null
+}): Promise<AppUpdateDownloadResult> {
+  if (!hasTauriRuntime()) {
+    throw new Error('Downloading updates needs the Tauri app runtime.')
+  }
+
+  return tauriInvoke<AppUpdateDownloadResult>('download_app_update', { version, abi })
+}
+
+export async function installAppUpdate({
+  path
+}: {
+  path?: string
+} = {}): Promise<boolean> {
   if (!hasTauriRuntime()) {
     return false
   }
 
-  if (isAndroidRuntime()) {
-    await openUrl(PROJECT_RELEASE_URL)
-    return true
+  return tauriInvoke<boolean>('install_app_update', { path })
+}
+
+export async function listenAppUpdateProgress(
+  handler: (progress: AppUpdateDownloadProgress) => void
+): Promise<UnlistenFn> {
+  if (!hasTauriRuntime()) {
+    return () => {}
   }
 
-  return tauriInvoke<boolean>('install_app_update')
+  return listen<AppUpdateDownloadProgress>(APP_UPDATE_PROGRESS_EVENT, event => {
+    handler(event.payload)
+  })
 }
 
 export function isAndroidRuntime() {

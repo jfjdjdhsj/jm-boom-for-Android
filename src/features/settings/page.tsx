@@ -12,12 +12,16 @@ import {
   checkAppUpdate,
   configureNetworkProxy,
   discoverApiEndpoints,
+  downloadAppUpdate,
   getCurrentAppVersion,
   getDiagnosticsInfo,
   installAppUpdate,
+  isAndroidRuntime,
+  listenAppUpdateProgress,
   openDiagnosticsLogDir,
   setDiagnosticsDebugLogging
 } from '@/lib/api/setting'
+import { hasTauriRuntime } from '@/lib/api/tauri'
 import { clearReaderCache, getReaderCacheStats } from '@/lib/api/reader'
 import { getSavedLoginConfig, saveLoginCredentials, setLoginAutoLogin } from '@/lib/api/user'
 import { queryKeys } from '@/lib/query-keys'
@@ -42,6 +46,8 @@ export function SettingsPage() {
   const proxyHost = useSettingsStore(state => state.proxyHost)
   const proxyPort = useSettingsStore(state => state.proxyPort)
   const hideCovers = useSettingsStore(state => state.hideCovers)
+  const updateAbi = useSettingsStore(state => state.updateAbi)
+  const setUpdateAbi = useSettingsStore(state => state.setUpdateAbi)
   const setApi = useSettingsStore(state => state.setApi)
   const setReaderCacheLimitMb = useSettingsStore(state => state.setReaderCacheLimitMb)
   const setProxyMode = useSettingsStore(state => state.setProxyMode)
@@ -58,6 +64,7 @@ export function SettingsPage() {
     refetchOnWindowFocus: false
   })
   const [isRefreshingEndpoints, setIsRefreshingEndpoints] = useState(false)
+  const [updateDownloadPercent, setUpdateDownloadPercent] = useState<number | null>(null)
   const endpointOptions = useEndpointOptions(api, endpointDiscovery.data)
   const apiRef = useRef(api)
   const lastPreferredDiscoveryAtRef = useRef(0)
@@ -177,6 +184,21 @@ export function SettingsPage() {
   const installUpdate = useMutation({
     mutationFn: async () => {
       await configureNetworkProxy({ mode: proxyMode, host: proxyHost, port: proxyPort })
+
+      // Android 先把 APK 下载到 App 私有目录，再调用系统安装器，全程不跳浏览器。
+      if (isAndroidRuntime()) {
+        const version = appUpdate.data?.version ?? checkUpdate.data?.version
+        if (!version) {
+          return false
+        }
+
+        setUpdateDownloadPercent(0)
+        const downloaded = await downloadAppUpdate({ version, abi: updateAbi })
+        setUpdateDownloadPercent(null)
+
+        return installAppUpdate({ path: downloaded.path })
+      }
+
       return installAppUpdate()
     },
     onSuccess: installed => {
@@ -186,8 +208,37 @@ export function SettingsPage() {
     },
     onError: error => {
       toast.error(error instanceof Error ? error.message : String(error))
+    },
+    onSettled: () => {
+      setUpdateDownloadPercent(null)
     }
   })
+
+  useEffect(() => {
+    if (!hasTauriRuntime()) {
+      return
+    }
+
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    void listenAppUpdateProgress(progress => {
+      if (!disposed) {
+        setUpdateDownloadPercent(progress.percent)
+      }
+    }).then(cleanup => {
+      if (disposed) {
+        cleanup()
+        return
+      }
+
+      unlisten = cleanup
+    })
+
+    return () => {
+      disposed = true
+      unlisten?.()
+    }
+  }, [])
 
   useEffect(() => {
     apiRef.current = api
@@ -248,6 +299,9 @@ export function SettingsPage() {
               update={checkUpdate.data ?? appUpdate.data}
               isChecking={checkUpdate.isPending}
               isInstalling={installUpdate.isPending}
+              downloadPercent={updateDownloadPercent}
+              abi={updateAbi}
+              onAbiChange={setUpdateAbi}
               onCheck={() => checkUpdate.mutate()}
               onInstall={() => installUpdate.mutate()}
             />
